@@ -1,0 +1,1 @@
+export type FileType="markdown"|"text"|"pdf"|"image";export type DocFile={name:string;path:string;type:FileType};export type DocFolder={name:string;path:string;folders:DocFolder[];files:DocFile[]};
