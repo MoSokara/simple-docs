@@ -1,149 +1,141 @@
-# Sokara Docs
+# Simple Docs
 
-Personal offline-first documentation and learning library.
+Simple Docs is a small personal documentation app that reads a **real folder on your computer**.
 
-## Current direction
+It does not copy your documentation into the project, IndexedDB, GitHub, or a database.
 
-Sokara Docs is a Web app first. Desktop and Mobile packaging are intentionally postponed.
+## What it does
 
-Runtime data is stored in the browser, not in GitHub or public/docs.
+- Open any local folder such as `Docs/`.
+- Build a VS Code-like tree from the real folder.
+- Read `.md`, `.txt`, `.pdf`, and common image files.
+- Search file names, paths, and Markdown/TXT contents.
+- Open Markdown/TXT files directly in VS Code.
+- Keep the selected folder open between launches.
+- Watch the selected folder for external changes.
+- Refresh the tree and currently opened file when the real files change.
+- Export the complete selected folder as a compressed `.zip` backup.
+- Keep the UI responsive and simple.
 
-Architecture:
+## Why desktop
 
-React + Next.js
--> Dexie
--> IndexedDB
--> local files as Blobs + metadata
--> optional Supabase Storage
+The important requirements of this project are local filesystem access, external editor launching, and watching a real directory.
 
-## Local storage
+A normal browser cannot safely launch VS Code or freely watch arbitrary local directories. Simple Docs therefore uses Electron for the desktop shell while Next.js/React handles the UI. Electron's native folder dialog returns local paths, and its IPC/preload model is used to keep Node filesystem access out of the renderer.
 
-The browser uses IndexedDB through Dexie.
+## Data model
 
-Stored locally:
+Simple Docs has no document database.
 
-- Markdown
-- TXT
-- PDF
-- Images
-- Folder structure
-- File metadata
+```
+Your computer
+└── Docs/
+    ├── Git/
+    │   ├── aliases.md
+    │   └── config.md
+    ├── CS50/
+    │   └── Week 1 - C/
+    │       └── notes.pdf
+    ├── Images/
+    │   └── ASCII Code.png
+    └── notes.txt
+```
 
-The app requests persistent browser storage when supported.
+Simple Docs only stores two small pieces of application state in Electron's user-data directory:
 
-Saving or importing user documents does not create Git commits.
+- last opened folder
+- last selected file
 
-## Supported files
+The actual documents remain where you keep them.
 
-- .md
-- .txt
-- .pdf
-- .png
-- .jpg
-- .jpeg
-- .webp
-- .gif
-- .svg
+## Editing workflow
 
-## File management
+1. Open your `Docs` folder.
+2. Select a Markdown or TXT file.
+3. Click **Edit in VS Code**.
+4. VS Code edits the original file.
+5. Save the file in VS Code.
+6. Simple Docs detects the filesystem change and reloads the tree/viewer.
 
-Implemented:
+If the `code` command is not available, Simple Docs falls back to the operating system's default application for that file.
 
-- Create Markdown
-- Create TXT
-- Create folders
-- Import files
-- Import folders
-- Edit Markdown/TXT
-- Markdown preview
-- Rename files
-- Rename folders
-- Move files
-- Move folders
-- Delete files
-- Delete folders recursively
-- Download files
-- Export folders as ZIP
-- Search filenames
-- Search Markdown/TXT content
-- Responsive mobile Explorer
+## Import / Export
 
-## Backup
+There is intentionally no "upload files into the app" operation.
 
-Settings -> Backup creates a complete compressed SokaraDocs-Backup-YYYY-MM-DD.sokara file.
+**Import** means **Open Folder**: choose the real folder you already have on the device.
 
-The backup contains:
+**Export** means **Create ZIP Backup**: choose where to save a compressed copy of the currently opened folder. The ZIP can then be uploaded to cloud storage, copied to another device, or archived.
 
-- Folder structure
-- File metadata
-- File contents
-- Manifest
+The original folder is never moved or deleted by export.
 
-It can be moved manually between devices.
+## Project structure
 
-## Offline
+```
+app/
+  page.tsx              # App entry
+  layout.tsx            # Metadata + global shell
 
-A service worker caches the application shell and runtime GET requests.
+components/docs/
+  docs-app.tsx          # Main UI/state
+  file-tree.tsx         # Recursive folder/file tree
+  file-viewer.tsx       # Markdown/TXT/PDF/image viewer
 
-The library itself is stored locally in IndexedDB, so reading and editing documents does not require Internet.
+electron/
+  main.cjs              # Filesystem, watcher, VS Code, ZIP, native dialogs
+  preload.cjs           # Safe renderer bridge
 
-## Cloud
+lib/
+  desktop-api.ts        # Typed renderer wrapper
 
-Recommended cloud architecture:
+types/
+  docs.ts               # Shared document/tree types
+  electron.d.ts         # Electron bridge types
+```
 
-- Authentication: Supabase Auth
-- Files: Supabase Storage
-- Local: IndexedDB + Dexie
-- Cloud path: user-id/library-path
+## Local setup
 
-Cloud is optional.
+Requirements:
 
-Uploading a document uses object storage. It does not create a Git commit.
+- Node.js LTS
+- VS Code (recommended for the Edit button)
+- npm
 
-### Enable Supabase
+Install dependencies:
 
-1. Create a Supabase project.
-2. Create a private Storage bucket named sokara-docs.
-3. Run supabase/storage.sql.
-4. Copy .env.example to .env.local.
-5. Add NEXT_PUBLIC_SUPABASE_URL.
-6. Add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.
-7. Restart Next.js.
-8. Open Settings -> Cloud storage.
-9. Create an account or sign in.
-10. Use Upload library or Restore cloud.
-
-The first cloud implementation intentionally uses manual upload and restore. Automatic conflict-aware two-way sync can be added later.
-
-## Shortcuts
-
-- Ctrl/Cmd + P: focus search
-- Ctrl/Cmd + Shift + F: focus search
-- Ctrl/Cmd + B: toggle Explorer on small screens
-- Ctrl/Cmd + O: import a folder
-- Ctrl/Cmd + S: save while editing
-
-## Run
-
+```bash
 npm install
+```
+
+Run the desktop app:
+
+```bash
 npm run dev
+```
 
-Production:
+Type-check:
 
+```bash
+npm run typecheck
+```
+
+Build the Next.js UI:
+
+```bash
 npm run build
-npm run start
+```
 
-## Future
+## Future changes
 
-The architecture leaves room for:
+Keep the local-folder model as the core.
 
-- Tauri desktop
-- Tauri Android
-- iOS
-- Better Markdown editor
-- Advanced PDF controls
-- Automatic two-way sync
-- Conflict detection
-- Version history
-- Selective sync
-- Encrypted backups
+Possible later additions:
+
+- polished custom context menus
+- file/folder rename and move operations
+- better PDF controls
+- native installers for Windows/macOS/Linux
+- optional cloud backup/sync based on ZIP backups
+- optional mobile version with a separate storage layer
+
+Do not reintroduce IndexedDB/Dexie as the primary document store unless the product requirements change. The real local folder should remain the source of truth.

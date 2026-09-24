@@ -1,7 +1,0 @@
-Sokara Docs plain-text example
-
-This file is intentionally plain text.
-Markdown syntax is not rendered here.
-
-Use .md when you want formatted notes.
-Use .txt when you want simple raw notes.
