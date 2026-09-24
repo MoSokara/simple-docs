@@ -16,4 +16,9 @@ contextBridge.exposeInMainWorld("simpleDocs", {
     ipcRenderer.on("folder:changed", listener);
     return () => ipcRenderer.removeListener("folder:changed", listener);
   },
+  onExportProgress: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on("export:progress", listener);
+    return () => ipcRenderer.removeListener("export:progress", listener);
+  },
 });

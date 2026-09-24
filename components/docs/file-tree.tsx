@@ -7,6 +7,7 @@ import type { DocFile, DocFolder } from "@/types/docs";
 const icons = {
   markdown: FileCode2,
   text: FileText,
+  code: FileCode2,
   pdf: FileType2,
   image: FileImage,
   other: FileText,
@@ -23,15 +24,18 @@ export function FileTree({
   onSelect: (file: DocFile) => void;
   depth?: number;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const isRoot = !folder.path;
+  const visible = isRoot || open;
 
   return (
     <div>
-      {folder.path && (
+      {!isRoot && (
         <button
           onClick={() => setOpen((value) => !value)}
-          className="flex w-full items-center gap-1 rounded px-1 py-1 text-left text-sm text-[var(--color-soft)] hover:bg-[var(--color-surface-soft)]"
+          className="flex w-full items-center gap-1 px-1 py-1 text-left text-sm text-[var(--color-soft)] hover:bg-[var(--color-surface-soft)]"
           style={{ paddingLeft: depth * 12 + 4 }}
+          aria-expanded={open}
         >
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           {open ? <FolderOpen size={16} /> : <Folder size={16} />}
@@ -39,21 +43,28 @@ export function FileTree({
         </button>
       )}
 
-      {open && (
+      {visible && (
         <div>
           {folder.folders.map((child) => (
-            <FileTree key={child.path} folder={child} selectedPath={selectedPath} onSelect={onSelect} depth={depth + (folder.path ? 1 : 0)} />
+            <FileTree
+              key={child.path}
+              folder={child}
+              selectedPath={selectedPath}
+              onSelect={onSelect}
+              depth={depth + (isRoot ? 0 : 1)}
+            />
           ))}
           {folder.files.map((file) => {
             const Icon = icons[file.type];
-            const level = depth + (folder.path ? 1 : 0);
+            const level = depth + (isRoot ? 0 : 1);
+
             return (
               <button
                 key={file.path}
                 title={file.path}
                 onClick={() => onSelect(file)}
                 className={
-                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm " +
+                  "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm " +
                   (selectedPath === file.path
                     ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]"
                     : "text-[var(--color-soft)] hover:bg-[var(--color-surface-soft)]")
