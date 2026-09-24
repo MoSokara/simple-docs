@@ -2,12 +2,17 @@ const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { spawn, execFileSync } = require("node:child_process");
 const archiver = require("archiver");
 
 const SUPPORTED = new Map([
   [".md", "markdown"], [".txt", "text"], [".pdf", "pdf"],
   [".png", "image"], [".jpg", "image"], [".jpeg", "image"],
   [".webp", "image"], [".gif", "image"], [".svg", "image"],
+  [".doc", "word"], [".docx", "word"], [".docm", "word"], [".dot", "word"], [".dotx", "word"], [".dotm", "word"],
+  [".ppt", "powerpoint"], [".pptx", "powerpoint"], [".pptm", "powerpoint"], [".pps", "powerpoint"], [".ppsx", "powerpoint"], [".pot", "powerpoint"], [".potx", "powerpoint"],
+  [".xls", "excel"], [".xlsx", "excel"], [".xlsm", "excel"], [".xlsb", "excel"], [".xlt", "excel"], [".xltx", "excel"], [".xltm", "excel"],
+  [".mdb", "access"], [".accdb", "access"], [".accde", "access"], [".mde", "access"],
 ]);
 
 const CODE_EXTENSIONS = new Set([
@@ -17,6 +22,8 @@ const CODE_EXTENSIONS = new Set([
   ".go", ".rs", ".py", ".rb", ".php", ".sql", ".sh", ".bash", ".zsh",
   ".ps1", ".bat", ".cmd", ".yaml", ".yml", ".toml", ".ini", ".conf", ".env",
 ]);
+
+const PREVIEW_TYPES = new Set(["markdown", "text", "code", "pdf", "image"]);
 
 const MIME = {
   markdown: "text/markdown",
@@ -39,6 +46,7 @@ let rootPath = null;
 let selectedPath = null;
 let watcher = null;
 let changeTimer = null;
+let lastExportPath = null;
 
 const stateFile = () => path.join(app.getPath("userData"), "state.json");
 
@@ -55,6 +63,8 @@ async function loadState() {
         rootPath = null;
       }
     }
+
+    if (!rootPath) selectedPath = null;
   } catch {}
 }
 
@@ -102,7 +112,10 @@ async function scanFolder(dir = rootPath, relative = "") {
     return null;
   }
 
-  entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+  entries.sort((a, b) => a.name.localeCompare(b.name, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  }));
 
   const folders = [];
   const files = [];
@@ -169,6 +182,7 @@ async function chooseFolder() {
 
   rootPath = path.resolve(result.filePaths[0]);
   selectedPath = null;
+  lastExportPath = null;
   await saveState();
   startWatcher();
 
@@ -180,14 +194,18 @@ async function readFile(relativePath) {
   const stat = await fsp.stat(full);
   const type = typeOf(full);
 
-  if (type === "other") throw new Error("Preview is not available for this file type.");
+  if (!PREVIEW_TYPES.has(type)) {
+    throw new Error("This file opens with the default desktop application.");
+  }
 
   const buffer = await fsp.readFile(full);
   const ext = path.extname(full).toLowerCase();
 
   return {
     type,
-    mimeType: type === "image" ? (imageMime[ext] || "application/octet-stream") : (MIME[type] || "application/octet-stream"),
+    mimeType: type === "image"
+      ? (imageMime[ext] || "application/octet-stream")
+      : (MIME[type] || "application/octet-stream"),
     base64: buffer.toString("base64"),
     size: stat.size,
     modifiedAt: stat.mtimeMs,
@@ -208,14 +226,19 @@ async function searchFiles(query) {
       const pathMatch = file.path.toLowerCase().includes(q) || file.name.toLowerCase().includes(q);
 
       if (pathMatch) {
-        results.push({ ...file, match: file.name.toLowerCase().includes(q) ? "name" : "path" });
+        results.push({
+          ...file,
+          match: file.name.toLowerCase().includes(q) ? "name" : "path",
+        });
         continue;
       }
 
       if (file.type === "markdown" || file.type === "text" || file.type === "code") {
         try {
           const content = await fsp.readFile(relativeSafe(file.path), "utf8");
-          if (content.toLowerCase().includes(q)) results.push({ ...file, match: "content" });
+          if (content.toLowerCase().includes(q)) {
+            results.push({ ...file, match: "content" });
+          }
         } catch {}
       }
     }
@@ -228,46 +251,53 @@ async function searchFiles(query) {
 }
 
 function vscodeUri(fullPath) {
-  return `vscode://file/${encodeURI(fullPath.replaceAll("\\\\", "/"))}`;
+  const normalized = fullPath.replaceAll("\\", "/");
+  const encoded = normalized.split("/").map((segment) => encodeURIComponent(segment)).join("/");
+  return `vscode://file/${encoded}`;
 }
 
-async function openInEditor(relativePath) {
-  const full = await existingPath(relativePath);
+function findVSCodeExecutable() {
+  const candidates = [
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code", "Code.exe"),
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Microsoft VS Code", "Code.exe"),
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code Insiders", "Code - Insiders.exe"),
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code Insiders", "Code.exe"),
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Microsoft VS Code Insiders", "Code - Insiders.exe"),
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Microsoft VS Code Insiders", "Code.exe"),
+    process.env["ProgramFiles(x86)"] && path.join(process.env["ProgramFiles(x86)"], "Microsoft VS Code", "Code.exe"),
+  ].filter(Boolean);
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+function findVSCodeCli() {
+  if (process.platform !== "win32") return null;
 
   try {
-    await shell.openExternal(vscodeUri(full));
-    return { ok: true };
-  } catch {}
+    const output = execFileSync("where.exe", ["code"], {
+      encoding: "utf8",
+      windowsHide: true,
+    });
 
+    return output.split(/\r?\n/).map((value) => value.trim()).find(Boolean) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function spawnDetached(command, args, options = {}) {
   return new Promise((resolve) => {
-    if (process.platform === "win32") {
-      const child = require("node:child_process").spawn(
-        "cmd.exe",
-        ["/d", "/c", "code.cmd", full],
-        { detached: true, stdio: "ignore", windowsHide: true },
-      );
-
-      child.once("error", async () => {
-        const error = await shell.openPath(full);
-        resolve(error ? { ok: false, message: error } : { ok: true, fallback: true });
-      });
-
-      child.once("spawn", () => {
-        child.unref();
-        resolve({ ok: true });
-      });
-      return;
-    }
-
-    const child = require("node:child_process").spawn("code", [full], {
+    const child = spawn(command, args, {
       detached: true,
       stdio: "ignore",
+      windowsHide: true,
+      ...options,
     });
 
-    child.once("error", async () => {
-      const error = await shell.openPath(full);
-      resolve(error ? { ok: false, message: error } : { ok: true, fallback: true });
-    });
+    child.once("error", (error) => resolve({
+      ok: false,
+      message: error instanceof Error ? error.message : "Could not launch application.",
+    }));
 
     child.once("spawn", () => {
       child.unref();
@@ -276,10 +306,52 @@ async function openInEditor(relativePath) {
   });
 }
 
+async function openInEditor(relativePath) {
+  const full = await existingPath(relativePath);
+
+  if (process.platform === "win32") {
+    const executable = findVSCodeExecutable();
+    if (executable) {
+      const result = await spawnDetached(executable, [full]);
+      if (result.ok) return { ...result, method: "vscode-exe" };
+    }
+
+    const cli = findVSCodeCli();
+    if (cli) {
+      const result = await spawnDetached("cmd.exe", [
+        "/d",
+        "/s",
+        "/c",
+        `"${cli}" "${full}"`,
+      ]);
+      if (result.ok) return { ...result, method: "vscode-cli" };
+    }
+  } else {
+    const result = await spawnDetached("code", [full], { windowsHide: false });
+    if (result.ok) return { ...result, method: "vscode-cli" };
+  }
+
+  try {
+    await shell.openExternal(vscodeUri(full));
+    return { ok: true, method: "vscode-protocol" };
+  } catch {}
+
+  const error = await shell.openPath(full);
+  return error ? { ok: false, message: error } : { ok: true, method: "default-app" };
+}
+
 async function revealRelative(relativePath) {
   const full = await existingPath(relativePath);
-  shell.showItemInFolder(full);
-  return { ok: true };
+
+  try {
+    shell.showItemInFolder(full);
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Could not open the folder.",
+    };
+  }
 }
 
 async function revealAbsolute(absolutePath) {
@@ -287,8 +359,38 @@ async function revealAbsolute(absolutePath) {
     throw new Error("Expected an absolute path.");
   }
 
+  if (!lastExportPath || path.resolve(absolutePath) !== path.resolve(lastExportPath)) {
+    throw new Error("This export path is no longer available.");
+  }
+
   await fsp.access(absolutePath, fs.constants.F_OK);
-  shell.showItemInFolder(absolutePath);
+
+  try {
+    shell.showItemInFolder(absolutePath);
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Could not open the folder.",
+    };
+  }
+}
+
+async function openDefault(relativePath) {
+  const full = await existingPath(relativePath);
+  const error = await shell.openPath(full);
+  return error ? { ok: false, message: error } : { ok: true };
+}
+
+async function openExternalUrl(url) {
+  if (typeof url !== "string") throw new Error("Invalid external URL.");
+
+  const parsed = new URL(url);
+  if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) {
+    throw new Error("Only web and mail links can be opened externally.");
+  }
+
+  await shell.openExternal(url);
   return { ok: true };
 }
 
@@ -301,8 +403,9 @@ async function collectFolderStats(dir) {
 
     for (const entry of entries) {
       const full = path.join(current, entry.name);
-      if (entry.isDirectory()) await walk(full);
-      else {
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else {
         try {
           totalBytes += (await fsp.stat(full)).size;
           totalFiles += 1;
@@ -324,14 +427,26 @@ async function exportFolder() {
 
   const result = await dialog.showSaveDialog(mainWindow, {
     title: "Export Docs Backup",
-    defaultPath: path.join(app.getPath("downloads"), `${path.basename(rootPath)}-backup.zip`),
+    defaultPath: path.join(
+      app.getPath("downloads"),
+      `${path.basename(rootPath)}-backup.zip`,
+    ),
     filters: [{ name: "ZIP archive", extensions: ["zip"] }],
   });
 
   if (result.canceled || !result.filePath) return { ok: false, canceled: true };
 
-  const outputPath = result.filePath;
-  sendExportProgress({ status: "preparing", percent: 0, processedBytes: 0, totalBytes: 0, processedFiles: 0, totalFiles: 0 });
+  const outputPath = path.resolve(result.filePath);
+  lastExportPath = null;
+
+  sendExportProgress({
+    status: "preparing",
+    percent: 0,
+    processedBytes: 0,
+    totalBytes: 0,
+    processedFiles: 0,
+    totalFiles: 0,
+  });
 
   try {
     const stats = await collectFolderStats(rootPath);
@@ -350,12 +465,15 @@ async function exportFolder() {
 
       output.once("error", fail);
       archive.once("error", fail);
+
       archive.on("progress", (progress) => {
         const processedBytes = progress.fs?.processedBytes ?? 0;
         const processedFiles = progress.entries?.processed ?? 0;
         const percent = stats.totalBytes > 0
           ? Math.min(99, Math.floor((processedBytes / stats.totalBytes) * 100))
-          : Math.min(99, Math.floor((processedFiles / Math.max(stats.totalFiles, 1)) * 100));
+          : Math.min(99, Math.floor(
+              (processedFiles / Math.max(stats.totalFiles, 1)) * 100,
+            ));
 
         sendExportProgress({
           status: "compressing",
@@ -379,6 +497,8 @@ async function exportFolder() {
       void archive.finalize().catch(fail);
     });
 
+    lastExportPath = outputPath;
+
     sendExportProgress({
       status: "complete",
       percent: 100,
@@ -393,6 +513,7 @@ async function exportFolder() {
   } catch (error) {
     try { await fsp.unlink(outputPath); } catch {}
     const message = error instanceof Error ? error.message : "Export failed.";
+    lastExportPath = null;
     sendExportProgress({ status: "error", percent: 0, message });
     return { ok: false, message };
   }
@@ -413,7 +534,8 @@ function registerIpc() {
   ipcMain.handle("file:edit", (_event, relativePath) => openInEditor(relativePath));
   ipcMain.handle("file:reveal", (_event, relativePath) => revealRelative(relativePath));
   ipcMain.handle("export:reveal", (_event, absolutePath) => revealAbsolute(absolutePath));
-  ipcMain.handle("file:openDefault", (_event, relativePath) => shell.openPath(relativeSafe(relativePath)));
+  ipcMain.handle("file:openDefault", (_event, relativePath) => openDefault(relativePath));
+  ipcMain.handle("shell:openExternal", (_event, url) => openExternalUrl(url));
   ipcMain.handle("folder:export", exportFolder);
 }
 
@@ -429,6 +551,13 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^(https?|mailto):/i.test(url)) {
+      void shell.openExternal(url);
+    }
+    return { action: "deny" };
   });
 
   mainWindow.loadURL("http://localhost:3000");
