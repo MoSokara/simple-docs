@@ -8,10 +8,11 @@ declare global {
       scan(): Promise<DocFolder | null>;
       readFile(relativePath: string): Promise<FilePayload>;
       search(query: string): Promise<SearchResult[]>;
-      openInEditor(relativePath: string): Promise<{ ok: boolean; message?: string; fallback?: boolean }>;
-      revealInExplorer(relativePath: string): Promise<void>;
-      revealExport(absolutePath: string): Promise<void>;
-      openDefault(relativePath: string): Promise<string>;
+      openInEditor(relativePath: string): Promise<{ ok: boolean; message?: string; method?: string }>;
+      revealInExplorer(relativePath: string): Promise<{ ok: boolean; message?: string }>;
+      revealExport(absolutePath: string): Promise<{ ok: boolean; message?: string }>;
+      openDefault(relativePath: string): Promise<{ ok: boolean; message?: string }>;
+      openExternalUrl(url: string): Promise<{ ok: boolean; message?: string }>;
       exportZip(): Promise<{ ok: boolean; path?: string; canceled?: boolean; message?: string }>;
       setSelectedFile(relativePath: string | null): Promise<void>;
       onFolderChanged(callback: () => void): () => void;
