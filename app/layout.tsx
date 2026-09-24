@@ -6,6 +6,14 @@ export const metadata: Metadata = {
   description: "Sokara's personal documentation and learning library.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" className="dark h-full"><body className="h-full antialiased">{children}</body></html>;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" className="dark h-full">
+      <body className="h-full antialiased">{children}</body>
+    </html>
+  );
 }
