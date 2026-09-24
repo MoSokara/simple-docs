@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("simpleDocs", {
   revealInExplorer: (relativePath) => ipcRenderer.invoke("file:reveal", relativePath),
   revealExport: (absolutePath) => ipcRenderer.invoke("export:reveal", absolutePath),
   openDefault: (relativePath) => ipcRenderer.invoke("file:openDefault", relativePath),
+  openExternalUrl: (url) => ipcRenderer.invoke("shell:openExternal", url),
   exportZip: () => ipcRenderer.invoke("folder:export"),
   setSelectedFile: (relativePath) => ipcRenderer.invoke("state:selected", relativePath),
   onFolderChanged: (callback) => {
