@@ -21,6 +21,7 @@ export const desktop = {
   revealInExplorer: (path: string) => api().revealInExplorer(path),
   revealExport: (absolutePath: string) => api().revealExport(absolutePath),
   openDefault: (path: string) => api().openDefault(path),
+  openExternalUrl: (url: string) => api().openExternalUrl(url),
   exportZip: () => api().exportZip(),
   setSelectedFile: (path: string | null) => api().setSelectedFile(path),
   onFolderChanged: (callback: () => void) => api().onFolderChanged(callback),
