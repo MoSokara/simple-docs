@@ -1,4 +1,14 @@
-export type FileType = "markdown" | "text" | "code" | "pdf" | "image" | "other";
+export type FileType =
+  | "markdown"
+  | "text"
+  | "code"
+  | "pdf"
+  | "image"
+  | "word"
+  | "powerpoint"
+  | "excel"
+  | "access"
+  | "other";
 
 export type DocFile = {
   name: string;
