@@ -18,14 +18,14 @@
     "next": "16.3.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "shiki": "^4.4.3"
+    "shiki": "^4.4.3",
+    "archiver": "^7.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "archiver": "^7.0.1",
     "concurrently": "^9.2.1",
     "electron": "41.10.6",
     "eslint": "^9",
