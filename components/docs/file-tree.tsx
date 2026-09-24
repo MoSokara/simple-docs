@@ -1,6 +1,18 @@
 "use client";
 
-import { ChevronDown, ChevronRight, FileCode2, FileImage, FileText, FileType2, Folder, FolderOpen } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Database,
+  FileCode2,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileType2,
+  Folder,
+  FolderOpen,
+  Presentation,
+} from "lucide-react";
 import { useState } from "react";
 import type { DocFile, DocFolder } from "@/types/docs";
 import { FILE_TYPE_META } from "./file-type";
@@ -11,6 +23,10 @@ const icons = {
   code: FileCode2,
   pdf: FileType2,
   image: FileImage,
+  word: FileText,
+  powerpoint: Presentation,
+  excel: FileSpreadsheet,
+  access: Database,
   other: FileText,
 };
 
@@ -34,7 +50,7 @@ export function FileTree({
       {!isRoot && (
         <button
           onClick={() => setOpen((value) => !value)}
-          className="flex w-full items-center gap-1 px-2 py-1 text-left text-sm text-soft hover:bg-hover"
+          className="flex w-full items-center gap-1 px-2 py-1.5 text-left text-sm text-soft hover:bg-hover"
           style={{ paddingLeft: depth * 12 + 8 }}
           aria-expanded={open}
         >
@@ -47,7 +63,13 @@ export function FileTree({
       {visible && (
         <div>
           {folder.folders.map((child) => (
-            <FileTree key={child.path} folder={child} selectedPath={selectedPath} onSelect={onSelect} depth={depth + 1} />
+            <FileTree
+              key={child.path}
+              folder={child}
+              selectedPath={selectedPath}
+              onSelect={onSelect}
+              depth={depth + 1}
+            />
           ))}
 
           {folder.files.map((file) => {
@@ -61,13 +83,15 @@ export function FileTree({
                 title={file.path}
                 onClick={() => onSelect(file)}
                 className={
-                  "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors " +
+                  "group flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors " +
                   (selectedPath === file.path ? "bg-hover" : "hover:bg-hover")
                 }
                 style={{ paddingLeft: level * 12 + 12 }}
               >
                 <Icon size={15} className={meta.iconClass} />
-                <span className={`truncate ${meta.colorClass}`}>{file.name}</span>
+                <span className={`min-w-0 truncate ${meta.colorClass}`}>
+                  {file.name}
+                </span>
               </button>
             );
           })}
