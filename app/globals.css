@@ -18,7 +18,12 @@
   --token-file-code: #60a5fa;
   --token-file-pdf: #f87171;
   --token-file-image: #c084fc;
+  --token-file-word: #60a5fa;
+  --token-file-powerpoint: #f97316;
+  --token-file-excel: #22c55e;
+  --token-file-access: #a855f7;
   --token-file-other: #fb923c;
+  --token-scrollbar: rgba(100, 116, 139, .38);
   --token-code-bg: #f8fafc;
   --token-code-foreground: #0f172a;
 }
@@ -41,7 +46,12 @@
   --token-file-code: #60a5fa;
   --token-file-pdf: #f87171;
   --token-file-image: #c084fc;
+  --token-file-word: #60a5fa;
+  --token-file-powerpoint: #fb9232;
+  --token-file-excel: #4ade80;
+  --token-file-access: #c084fc;
   --token-file-other: #fb923c;
+  --token-scrollbar: rgba(148, 163, 184, .26);
   --token-code-bg: #0d131a;
   --token-code-foreground: #dbe7f5;
 }
@@ -64,7 +74,12 @@
   --color-file-code: var(--token-file-code);
   --color-file-pdf: var(--token-file-pdf);
   --color-file-image: var(--token-file-image);
+  --color-file-word: var(--token-file-word);
+  --color-file-powerpoint: var(--token-file-powerpoint);
+  --color-file-excel: var(--token-file-excel);
+  --color-file-access: var(--token-file-access);
   --color-file-other: var(--token-file-other);
+  --color-scrollbar: var(--token-scrollbar);
   --color-code-bg: var(--token-code-bg);
   --color-code-foreground: var(--token-code-foreground);
 }
@@ -80,7 +95,29 @@ body {
 button, input { font: inherit; }
 button:not(:disabled) { cursor: pointer; }
 ::selection { background: color-mix(in srgb, var(--token-brand) 25%, transparent); }
-.docs-scroll { scrollbar-width: thin; }
+
+.docs-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--token-scrollbar) transparent;
+  overscroll-behavior: contain;
+}
+.docs-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.docs-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.docs-scroll::-webkit-scrollbar-thumb {
+  background: var(--token-scrollbar);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+.docs-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--token-muted);
+  background-clip: content-box;
+}
 
 .markdown {
   max-width: 900px;
@@ -98,25 +135,79 @@ button:not(:disabled) { cursor: pointer; }
 .markdown h3 { font-size: 1.15rem; }
 .markdown p, .markdown ul, .markdown ol, .markdown blockquote { margin: 1em 0; }
 .markdown ul, .markdown ol { padding-left: 1.5rem; }
-.markdown a { color: var(--token-brand-strong); text-decoration: underline; }
-.markdown blockquote { border-left: 3px solid var(--token-brand); padding-left: 1rem; color: var(--token-muted); }
-.markdown table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
-.markdown th, .markdown td { border: 1px solid var(--token-border); padding: .55rem .75rem; }
+.markdown a {
+  color: var(--token-brand-strong);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.markdown blockquote {
+  border-left: 3px solid var(--token-brand);
+  padding-left: 1rem;
+  color: var(--token-muted);
+}
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+.markdown th, .markdown td {
+  border: 1px solid var(--token-border);
+  padding: .55rem .75rem;
+}
 .markdown code:not(pre code) {
   background: var(--token-code-bg);
   border: 1px solid var(--token-border);
   border-radius: 4px;
   padding: .12rem .35rem;
-  font-family: monospace;
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 .markdown pre {
-  overflow-x: auto;
+  position: relative;
+  overflow: auto;
+  margin: 1.25rem 0;
   background: var(--token-code-bg);
   border: 1px solid var(--token-border);
   border-radius: 7px;
-  padding: 1rem;
+  padding: 2.75rem 1rem 1rem;
 }
-.markdown pre code { font-family: monospace; color: var(--token-code-foreground); }
+.markdown pre code {
+  display: block;
+  min-width: max-content;
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+}
+.markdown .shiki {
+  background: var(--token-code-bg) !important;
+}
+.markdown-code-toolbar {
+  position: absolute;
+  inset: .55rem .65rem auto;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.markdown-code-language {
+  color: var(--token-muted);
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.markdown-copy-button {
+  border: 1px solid var(--token-border);
+  background: var(--token-bg-alt);
+  color: var(--token-soft);
+  border-radius: 4px;
+  padding: .25rem .55rem;
+  font-size: .72rem;
+}
+.markdown-copy-button:hover {
+  background: var(--token-hover);
+  color: var(--token-text);
+}
 
 .plain-text, .code-viewer {
   margin: 0;
@@ -128,10 +219,25 @@ button:not(:disabled) { cursor: pointer; }
   tab-size: 2;
 }
 .plain-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-.code-viewer { white-space: pre; overflow-wrap: normal; }
+.code-viewer { white-space: pre; overflow-wrap: normal; padding-right: 1rem; }
+
 .text-file-markdown { color: var(--token-file-markdown); }
 .text-file-text { color: var(--token-file-text); }
 .text-file-code { color: var(--token-file-code); }
 .text-file-pdf { color: var(--token-file-pdf); }
 .text-file-image { color: var(--token-file-image); }
+.text-file-word { color: var(--token-file-word); }
+.text-file-powerpoint { color: var(--token-file-powerpoint); }
+.text-file-excel { color: var(--token-file-excel); }
+.text-file-access { color: var(--token-file-access); }
 .text-file-other { color: var(--token-file-other); }
+
+.markdown h1[id], .markdown h2[id], .markdown h3[id],
+.markdown h4[id], .markdown h5[id], .markdown h6[id] {
+  scroll-margin-top: 1rem;
+}
+
+button:focus-visible, input:focus-visible, [role="separator"]:focus-visible {
+  outline: 2px solid var(--token-brand);
+  outline-offset: 2px;
+}
