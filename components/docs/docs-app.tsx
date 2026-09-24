@@ -10,6 +10,7 @@ import { FileViewer } from "./file-viewer";
 
 function findFile(folder: DocFolder | null, target: string | null): DocFile | null {
   if (!folder || !target) return null;
+
   const direct = folder.files.find((file) => file.path === target);
   if (direct) return direct;
 
@@ -27,6 +28,7 @@ export function DocsApp() {
   const [rootPath, setRootPath] = useState<string | null>(null);
   const [selected, setSelected] = useState<DocFile | null>(null);
   const selectedPathRef = useRef<string | null>(null);
+  const [selectedAnchor, setSelectedAnchor] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -47,8 +49,8 @@ export function DocsApp() {
     desktop.getState()
       .then(async (state) => {
         if (!active) return;
-        setRootPath(state.rootPath);
 
+        setRootPath(state.rootPath);
         const next = await desktop.scan();
         if (!active) return;
 
@@ -56,11 +58,13 @@ export function DocsApp() {
         const file = findFile(next, state.selectedPath);
         setSelected(file);
         selectedPathRef.current = file?.path ?? null;
+        setSelectedAnchor(null);
       })
       .catch(() => active && setTree(null));
 
     const offFolder = desktop.onFolderChanged(async () => {
       const current = selectedPathRef.current;
+
       try {
         const next = await desktop.scan();
         if (!active) return;
@@ -125,24 +129,48 @@ export function DocsApp() {
 
   async function openFolder() {
     setBusy(true);
+
     try {
       const result = await desktop.openFolder();
       setTree(result.tree);
       setRootPath(result.rootPath);
       setSelected(null);
       selectedPathRef.current = null;
+      setSelectedAnchor(null);
       setQuery("");
       setResults([]);
+      setMobileOpen(false);
     } finally {
       setBusy(false);
     }
   }
 
-  function selectFile(file: DocFile) {
+  function selectFile(file: DocFile, anchor: string | null = null) {
     setSelected(file);
     selectedPathRef.current = file.path;
+    setSelectedAnchor(anchor);
     void desktop.setSelectedFile(file.path);
     setMobileOpen(false);
+  }
+
+  function navigateTo(path: string, anchor: string | null) {
+    const file = findFile(tree, path);
+    if (!file) return;
+    selectFile(file, anchor);
+  }
+
+  async function editFile(file: DocFile) {
+    setSelectedAnchor(null);
+
+    try {
+      const result = await desktop.openInEditor(file.path);
+
+      if (!result.ok) {
+        window.alert(result.message ?? "Could not open VS Code.");
+      }
+    } catch (reason) {
+      window.alert(reason instanceof Error ? reason.message : "Could not open VS Code.");
+    }
   }
 
   async function exportZip() {
@@ -177,7 +205,9 @@ export function DocsApp() {
       <div className="flex h-screen items-center justify-center p-8 text-center">
         <div>
           <h1 className="text-2xl font-semibold">Simple Docs</h1>
-          <p className="mt-2 text-sm text-muted">Run the desktop app with <code>npm run dev</code>.</p>
+          <p className="mt-2 text-sm text-muted">
+            Run the desktop app with <code>npm run dev</code>.
+          </p>
         </div>
       </div>
     );
@@ -189,10 +219,15 @@ export function DocsApp() {
         query={query}
         results={results}
         exporting={exporting}
+        busy={busy}
         hasFolder={!!rootPath}
         mobileOpen={mobileOpen}
         onQueryChange={setQuery}
-        onSelectResult={(file) => { selectFile(file); setQuery(""); }}
+        onSelectResult={(file) => {
+          selectFile(file);
+          setQuery("");
+        }}
+        onImport={() => void openFolder()}
         onExport={() => void exportZip()}
         onToggleMobile={() => setMobileOpen((value) => !value)}
       />
@@ -202,7 +237,15 @@ export function DocsApp() {
         progress={exportProgress}
         message={exportMessage}
         path={exportPath}
-        onShow={() => exportPath && void desktop.revealExport(exportPath)}
+        onShow={() => {
+          if (!exportPath) return;
+
+          void desktop.revealExport(exportPath).then((result) => {
+            if (!result.ok) setExportMessage(result.message ?? "Could not open the folder.");
+          }).catch((reason) => {
+            setExportMessage(reason instanceof Error ? reason.message : "Could not open the folder.");
+          });
+        }}
         onDismiss={() => {
           setExportStatus("idle");
           setExportPath(null);
@@ -229,8 +272,14 @@ export function DocsApp() {
           />
         )}
 
-        <main className="min-w-0 flex-1 bg-bg">
-          <FileViewer file={selected} rootPath={rootPath} onEdit={(file) => void desktop.openInEditor(file.path)} />
+        <main className="min-w-0 flex-1 overflow-hidden bg-bg">
+          <FileViewer
+            file={selected}
+            rootPath={rootPath}
+            anchor={selectedAnchor}
+            onEdit={editFile}
+            onNavigate={navigateTo}
+          />
         </main>
       </div>
     </div>
