@@ -2,29 +2,20 @@ const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
 const archiver = require("archiver");
 
 const SUPPORTED = new Map([
-  [".md", "markdown"],
-  [".txt", "text"],
-  [".pdf", "pdf"],
-  [".png", "image"],
-  [".jpg", "image"],
-  [".jpeg", "image"],
-  [".webp", "image"],
-  [".gif", "image"],
-  [".svg", "image"],
+  [".md", "markdown"], [".txt", "text"], [".pdf", "pdf"],
+  [".png", "image"], [".jpg", "image"], [".jpeg", "image"],
+  [".webp", "image"], [".gif", "image"], [".svg", "image"],
 ]);
 
 const CODE_EXTENSIONS = new Set([
-  ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".json",
-  ".html", ".htm", ".css", ".scss", ".sass", ".less",
-  ".xml", ".vue", ".svelte", ".c", ".h", ".cc", ".cpp", ".cxx",
-  ".hpp", ".hh", ".cs", ".java", ".kt", ".kts", ".go", ".rs",
-  ".py", ".rb", ".php", ".sql", ".sh", ".bash", ".zsh",
-  ".ps1", ".bat", ".cmd", ".yaml", ".yml", ".toml", ".ini",
-  ".conf", ".env",
+  ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".json", ".html", ".htm",
+  ".css", ".scss", ".sass", ".less", ".xml", ".vue", ".svelte", ".c", ".h",
+  ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".cs", ".java", ".kt", ".kts",
+  ".go", ".rs", ".py", ".rb", ".php", ".sql", ".sh", ".bash", ".zsh",
+  ".ps1", ".bat", ".cmd", ".yaml", ".yml", ".toml", ".ini", ".conf", ".env",
 ]);
 
 const MIME = {
@@ -32,22 +23,18 @@ const MIME = {
   text: "text/plain",
   code: "text/plain",
   pdf: "application/pdf",
-  image: "application/octet-stream",
 };
 
-function mimeFor(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  return ({
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".webp": "image/webp",
-    ".gif": "image/gif",
-    ".svg": "image/svg+xml",
-  })[ext] || MIME.image;
-}
+const imageMime = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+};
 
-let mainWindow;
+let mainWindow = null;
 let rootPath = null;
 let selectedPath = null;
 let watcher = null;
@@ -60,20 +47,41 @@ async function loadState() {
     const state = JSON.parse(await fsp.readFile(stateFile(), "utf8"));
     rootPath = typeof state.rootPath === "string" ? state.rootPath : null;
     selectedPath = typeof state.selectedPath === "string" ? state.selectedPath : null;
+
+    if (rootPath) {
+      try {
+        if (!(await fsp.stat(rootPath)).isDirectory()) rootPath = null;
+      } catch {
+        rootPath = null;
+      }
+    }
   } catch {}
 }
 
 async function saveState() {
   await fsp.mkdir(path.dirname(stateFile()), { recursive: true });
-  await fsp.writeFile(stateFile(), JSON.stringify({ rootPath, selectedPath }, null, 2));
+  await fsp.writeFile(stateFile(), JSON.stringify({ rootPath, selectedPath }, null, 2), "utf8");
 }
 
 function relativeSafe(relativePath) {
-  if (!rootPath) throw new Error("No folder is open.");
+  if (!rootPath || typeof relativePath !== "string") throw new Error("No folder is open.");
+
   const clean = path.normalize(relativePath);
-  const full = path.resolve(rootPath, clean);
+  if (path.isAbsolute(clean)) throw new Error("Expected a relative file path.");
+
   const base = path.resolve(rootPath);
-  if (full !== base && !full.startsWith(base + path.sep)) throw new Error("Invalid file path.");
+  const full = path.resolve(base, clean);
+
+  if (full !== base && !full.startsWith(base + path.sep)) {
+    throw new Error("Invalid file path.");
+  }
+
+  return full;
+}
+
+async function existingPath(relativePath) {
+  const full = relativeSafe(relativePath);
+  await fsp.access(full, fs.constants.F_OK);
   return full;
 }
 
@@ -86,29 +94,39 @@ function typeOf(filePath) {
 
 async function scanFolder(dir = rootPath, relative = "") {
   if (!dir) return null;
-  const entries = await fsp.readdir(dir, { withFileTypes: true });
-  entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+  let entries;
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
+  entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
 
   const folders = [];
   const files = [];
+
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     const rel = relative ? path.join(relative, entry.name) : entry.name;
 
     if (entry.isDirectory()) {
-      folders.push(await scanFolder(full, rel));
+      const child = await scanFolder(full, rel);
+      if (child) folders.push(child);
       continue;
     }
 
-    const type = typeOf(full);
-    const stat = await fsp.stat(full);
-    files.push({
-      name: entry.name,
-      path: rel.split(path.sep).join("/"),
-      type,
-      size: stat.size,
-      modifiedAt: stat.mtimeMs,
-    });
+    try {
+      const stat = await fsp.stat(full);
+      files.push({
+        name: entry.name,
+        path: rel.split(path.sep).join("/"),
+        type: typeOf(full),
+        size: stat.size,
+        modifiedAt: stat.mtimeMs,
+      });
+    } catch {}
   }
 
   return {
@@ -121,7 +139,9 @@ async function scanFolder(dir = rootPath, relative = "") {
 
 function scheduleChange() {
   clearTimeout(changeTimer);
-  changeTimer = setTimeout(() => mainWindow?.webContents.send("folder:changed"), 180);
+  changeTimer = setTimeout(() => {
+    mainWindow?.webContents.send("folder:changed");
+  }, 250);
 }
 
 function startWatcher() {
@@ -147,7 +167,7 @@ async function chooseFolder() {
     return { rootPath, tree: rootPath ? await scanFolder() : null };
   }
 
-  rootPath = result.filePaths[0];
+  rootPath = path.resolve(result.filePaths[0]);
   selectedPath = null;
   await saveState();
   startWatcher();
@@ -156,18 +176,18 @@ async function chooseFolder() {
 }
 
 async function readFile(relativePath) {
-  const full = relativeSafe(relativePath);
+  const full = await existingPath(relativePath);
   const stat = await fsp.stat(full);
   const type = typeOf(full);
 
-  if (type === "other") {
-    throw new Error("Preview is not available for this file type.");
-  }
+  if (type === "other") throw new Error("Preview is not available for this file type.");
 
   const buffer = await fsp.readFile(full);
+  const ext = path.extname(full).toLowerCase();
+
   return {
     type,
-    mimeType: type === "image" ? mimeFor(full) : (MIME[type] || "application/octet-stream"),
+    mimeType: type === "image" ? (imageMime[ext] || "application/octet-stream") : (MIME[type] || "application/octet-stream"),
     base64: buffer.toString("base64"),
     size: stat.size,
     modifiedAt: stat.mtimeMs,
@@ -179,6 +199,8 @@ async function searchFiles(query) {
 
   const q = query.trim().toLowerCase();
   const tree = await scanFolder();
+  if (!tree) return [];
+
   const results = [];
 
   async function walk(folder) {
@@ -192,56 +214,82 @@ async function searchFiles(query) {
 
       if (file.type === "markdown" || file.type === "text" || file.type === "code") {
         try {
-          const text = await fsp.readFile(relativeSafe(file.path), "utf8");
-          if (text.toLowerCase().includes(q)) results.push({ ...file, match: "content" });
+          const content = await fsp.readFile(relativeSafe(file.path), "utf8");
+          if (content.toLowerCase().includes(q)) results.push({ ...file, match: "content" });
         } catch {}
       }
     }
 
-    for (const child of folder.folders) {
-      await walk(child);
-    }
+    for (const child of folder.folders) await walk(child);
   }
 
   await walk(tree);
   return results.slice(0, 100);
 }
 
-function findCodeCommand() {
-  if (process.platform !== "win32") return "code";
-
-  const candidates = [
-    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code", "bin", "code.cmd"),
-    process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Microsoft VS Code", "bin", "code.cmd"),
-    process.env["ProgramFiles(x86)"] && path.join(process.env["ProgramFiles(x86)"], "Microsoft VS Code", "bin", "code.cmd"),
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-
-  return "code.cmd";
+function vscodeUri(fullPath) {
+  return `vscode://file/${encodeURI(fullPath.replaceAll("\\\\", "/"))}`;
 }
 
-function openInVSCode(relativePath) {
-  const full = relativeSafe(relativePath);
-  const command = findCodeCommand();
+async function openInEditor(relativePath) {
+  const full = await existingPath(relativePath);
+
+  try {
+    await shell.openExternal(vscodeUri(full));
+    return { ok: true };
+  } catch {}
 
   return new Promise((resolve) => {
-    const launch = process.platform === "win32"
-      ? spawn("cmd.exe", ["/d", "/s", "/c", `"${command}" "${full}"`], { detached: true, stdio: "ignore", windowsHide: true })
-      : spawn(command, [full], { detached: true, stdio: "ignore", windowsHide: true });
+    if (process.platform === "win32") {
+      const child = require("node:child_process").spawn(
+        "cmd.exe",
+        ["/d", "/c", "code.cmd", full],
+        { detached: true, stdio: "ignore", windowsHide: true },
+      );
 
-    launch.once("error", async () => {
-      const fallback = await shell.openPath(full);
-      resolve(fallback ? { ok: false, message: fallback } : { ok: true, fallback: true });
+      child.once("error", async () => {
+        const error = await shell.openPath(full);
+        resolve(error ? { ok: false, message: error } : { ok: true, fallback: true });
+      });
+
+      child.once("spawn", () => {
+        child.unref();
+        resolve({ ok: true });
+      });
+      return;
+    }
+
+    const child = require("node:child_process").spawn("code", [full], {
+      detached: true,
+      stdio: "ignore",
     });
 
-    launch.once("spawn", () => {
-      launch.unref();
+    child.once("error", async () => {
+      const error = await shell.openPath(full);
+      resolve(error ? { ok: false, message: error } : { ok: true, fallback: true });
+    });
+
+    child.once("spawn", () => {
+      child.unref();
       resolve({ ok: true });
     });
   });
+}
+
+async function revealRelative(relativePath) {
+  const full = await existingPath(relativePath);
+  shell.showItemInFolder(full);
+  return { ok: true };
+}
+
+async function revealAbsolute(absolutePath) {
+  if (typeof absolutePath !== "string" || !path.isAbsolute(absolutePath)) {
+    throw new Error("Expected an absolute path.");
+  }
+
+  await fsp.access(absolutePath, fs.constants.F_OK);
+  shell.showItemInFolder(absolutePath);
+  return { ok: true };
 }
 
 async function collectFolderStats(dir) {
@@ -253,13 +301,10 @@ async function collectFolderStats(dir) {
 
     for (const entry of entries) {
       const full = path.join(current, entry.name);
-
-      if (entry.isDirectory()) {
-        await walk(full);
-      } else {
+      if (entry.isDirectory()) await walk(full);
+      else {
         try {
-          const stat = await fsp.stat(full);
-          totalBytes += stat.size;
+          totalBytes += (await fsp.stat(full)).size;
           totalFiles += 1;
         } catch {}
       }
@@ -279,45 +324,29 @@ async function exportFolder() {
 
   const result = await dialog.showSaveDialog(mainWindow, {
     title: "Export Docs Backup",
-    defaultPath: path.join(app.getPath("downloads"), path.basename(rootPath) + "-backup.zip"),
+    defaultPath: path.join(app.getPath("downloads"), `${path.basename(rootPath)}-backup.zip`),
     filters: [{ name: "ZIP archive", extensions: ["zip"] }],
   });
 
-  if (result.canceled || !result.filePath) {
-    return { ok: false, canceled: true };
-  }
+  if (result.canceled || !result.filePath) return { ok: false, canceled: true };
 
   const outputPath = result.filePath;
   sendExportProgress({ status: "preparing", percent: 0, processedBytes: 0, totalBytes: 0, processedFiles: 0, totalFiles: 0 });
 
   try {
     const stats = await collectFolderStats(rootPath);
-    sendExportProgress({
-      status: "compressing",
-      percent: 0,
-      processedBytes: 0,
-      totalBytes: stats.totalBytes,
-      processedFiles: 0,
-      totalFiles: stats.totalFiles,
-    });
 
     await new Promise((resolve, reject) => {
       const output = fs.createWriteStream(outputPath);
       const archive = archiver("zip", { zlib: { level: 9 } });
-
       let settled = false;
-      const fail = (error) => {
-        if (settled) return;
-        settled = true;
-        reject(error);
-      };
 
-      output.once("close", () => {
+      const fail = (error) => {
         if (!settled) {
           settled = true;
-          resolve();
+          reject(error);
         }
-      });
+      };
 
       output.once("error", fail);
       archive.once("error", fail);
@@ -325,8 +354,8 @@ async function exportFolder() {
         const processedBytes = progress.fs?.processedBytes ?? 0;
         const processedFiles = progress.entries?.processed ?? 0;
         const percent = stats.totalBytes > 0
-          ? Math.min(99, Math.round((processedBytes / stats.totalBytes) * 100))
-          : Math.min(99, Math.round((processedFiles / Math.max(stats.totalFiles, 1)) * 100));
+          ? Math.min(99, Math.floor((processedBytes / stats.totalBytes) * 100))
+          : Math.min(99, Math.floor((processedFiles / Math.max(stats.totalFiles, 1)) * 100));
 
         sendExportProgress({
           status: "compressing",
@@ -338,9 +367,16 @@ async function exportFolder() {
         });
       });
 
+      output.once("close", () => {
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      });
+
       archive.pipe(output);
       archive.directory(rootPath, path.basename(rootPath));
-      archive.finalize().catch(fail);
+      void archive.finalize().catch(fail);
     });
 
     sendExportProgress({
@@ -356,9 +392,29 @@ async function exportFolder() {
     return { ok: true, path: outputPath };
   } catch (error) {
     try { await fsp.unlink(outputPath); } catch {}
-    sendExportProgress({ status: "error", percent: 0, message: error instanceof Error ? error.message : "Export failed." });
-    return { ok: false, message: error instanceof Error ? error.message : "Export failed." };
+    const message = error instanceof Error ? error.message : "Export failed.";
+    sendExportProgress({ status: "error", percent: 0, message });
+    return { ok: false, message };
   }
+}
+
+function registerIpc() {
+  ipcMain.handle("state:get", () => ({ rootPath, selectedPath }));
+
+  ipcMain.handle("state:selected", async (_event, value) => {
+    selectedPath = typeof value === "string" ? value : null;
+    await saveState();
+  });
+
+  ipcMain.handle("folder:open", chooseFolder);
+  ipcMain.handle("folder:scan", () => rootPath ? scanFolder() : null);
+  ipcMain.handle("file:read", (_event, relativePath) => readFile(relativePath));
+  ipcMain.handle("file:search", (_event, query) => searchFiles(query));
+  ipcMain.handle("file:edit", (_event, relativePath) => openInEditor(relativePath));
+  ipcMain.handle("file:reveal", (_event, relativePath) => revealRelative(relativePath));
+  ipcMain.handle("export:reveal", (_event, absolutePath) => revealAbsolute(absolutePath));
+  ipcMain.handle("file:openDefault", (_event, relativePath) => shell.openPath(relativeSafe(relativePath)));
+  ipcMain.handle("folder:export", exportFolder);
 }
 
 function createWindow() {
@@ -367,7 +423,7 @@ function createWindow() {
     height: 900,
     minWidth: 900,
     minHeight: 620,
-    backgroundColor: "#080b10",
+    backgroundColor: "#090b0f",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -375,32 +431,14 @@ function createWindow() {
     },
   });
 
-  const dev = process.argv.includes("--dev");
-  if (dev) {
-    mainWindow.loadURL("http://localhost:3000");
-  } else {
-    mainWindow.loadURL("http://localhost:3000");
-  }
+  mainWindow.loadURL("http://localhost:3000");
 }
 
 app.whenReady().then(async () => {
   await loadState();
+  registerIpc();
   createWindow();
   startWatcher();
-
-  ipcMain.handle("state:get", () => ({ rootPath, selectedPath }));
-  ipcMain.handle("state:selected", async (_event, value) => {
-    selectedPath = typeof value === "string" ? value : null;
-    await saveState();
-  });
-  ipcMain.handle("folder:open", chooseFolder);
-  ipcMain.handle("folder:scan", async () => rootPath ? scanFolder() : null);
-  ipcMain.handle("file:read", (_event, relativePath) => readFile(relativePath));
-  ipcMain.handle("file:search", (_event, query) => searchFiles(query));
-  ipcMain.handle("file:edit", (_event, relativePath) => openInVSCode(relativePath));
-  ipcMain.handle("file:reveal", (_event, relativePath) => shell.showItemInFolder(relativeSafe(relativePath)));
-  ipcMain.handle("file:openDefault", (_event, relativePath) => shell.openPath(relativeSafe(relativePath)));
-  ipcMain.handle("folder:export", exportFolder);
 });
 
 app.on("window-all-closed", () => {

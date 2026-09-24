@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronRight, FileCode2, FileImage, FileText, FileType2, Folder, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import type { DocFile, DocFolder } from "@/types/docs";
+import { FILE_TYPE_META } from "./file-type";
 
 const icons = {
   markdown: FileCode2,
@@ -25,7 +26,7 @@ export function FileTree({
   depth?: number;
 }) {
   const [open, setOpen] = useState(false);
-  const isRoot = !folder.path;
+  const isRoot = depth === 0;
   const visible = isRoot || open;
 
   return (
@@ -33,8 +34,8 @@ export function FileTree({
       {!isRoot && (
         <button
           onClick={() => setOpen((value) => !value)}
-          className="flex w-full items-center gap-1 px-1 py-1 text-left text-sm text-[var(--color-soft)] hover:bg-[var(--color-surface-soft)]"
-          style={{ paddingLeft: depth * 12 + 4 }}
+          className="flex w-full items-center gap-1 px-2 py-1 text-left text-sm text-soft hover:bg-hover"
+          style={{ paddingLeft: depth * 12 + 8 }}
           aria-expanded={open}
         >
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -46,17 +47,13 @@ export function FileTree({
       {visible && (
         <div>
           {folder.folders.map((child) => (
-            <FileTree
-              key={child.path}
-              folder={child}
-              selectedPath={selectedPath}
-              onSelect={onSelect}
-              depth={depth + (isRoot ? 0 : 1)}
-            />
+            <FileTree key={child.path} folder={child} selectedPath={selectedPath} onSelect={onSelect} depth={depth + 1} />
           ))}
+
           {folder.files.map((file) => {
             const Icon = icons[file.type];
-            const level = depth + (isRoot ? 0 : 1);
+            const meta = FILE_TYPE_META[file.type];
+            const level = depth + 1;
 
             return (
               <button
@@ -64,15 +61,13 @@ export function FileTree({
                 title={file.path}
                 onClick={() => onSelect(file)}
                 className={
-                  "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm " +
-                  (selectedPath === file.path
-                    ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]"
-                    : "text-[var(--color-soft)] hover:bg-[var(--color-surface-soft)]")
+                  "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors " +
+                  (selectedPath === file.path ? "bg-hover" : "hover:bg-hover")
                 }
-                style={{ paddingLeft: level * 12 + 24 }}
+                style={{ paddingLeft: level * 12 + 12 }}
               >
-                <Icon size={15} />
-                <span className="truncate">{file.name}</span>
+                <Icon size={15} className={meta.iconClass} />
+                <span className={`truncate ${meta.colorClass}`}>{file.name}</span>
               </button>
             );
           })}

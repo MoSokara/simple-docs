@@ -10,6 +10,7 @@ declare global {
       search(query: string): Promise<SearchResult[]>;
       openInEditor(relativePath: string): Promise<{ ok: boolean; message?: string; fallback?: boolean }>;
       revealInExplorer(relativePath: string): Promise<void>;
+      revealExport(absolutePath: string): Promise<void>;
       openDefault(relativePath: string): Promise<string>;
       exportZip(): Promise<{ ok: boolean; path?: string; canceled?: boolean; message?: string }>;
       setSelectedFile(relativePath: string | null): Promise<void>;

@@ -7,10 +7,8 @@ export function isDesktopAvailable() {
 }
 
 function api() {
-  if (!isDesktopAvailable()) {
-    throw new Error("Simple Docs desktop bridge is not available.");
-  }
-  return window.simpleDocs;
+  if (!isDesktopAvailable()) throw new Error("Simple Docs desktop bridge is not available.");
+  return window.simpleDocs!;
 }
 
 export const desktop = {
@@ -21,6 +19,7 @@ export const desktop = {
   search: (query: string): Promise<SearchResult[]> => api().search(query),
   openInEditor: (path: string) => api().openInEditor(path),
   revealInExplorer: (path: string) => api().revealInExplorer(path),
+  revealExport: (absolutePath: string) => api().revealExport(absolutePath),
   openDefault: (path: string) => api().openDefault(path),
   exportZip: () => api().exportZip(),
   setSelectedFile: (path: string | null) => api().setSelectedFile(path),

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("simpleDocs", {
   search: (query) => ipcRenderer.invoke("file:search", query),
   openInEditor: (relativePath) => ipcRenderer.invoke("file:edit", relativePath),
   revealInExplorer: (relativePath) => ipcRenderer.invoke("file:reveal", relativePath),
+  revealExport: (absolutePath) => ipcRenderer.invoke("export:reveal", absolutePath),
   openDefault: (relativePath) => ipcRenderer.invoke("file:openDefault", relativePath),
   exportZip: () => ipcRenderer.invoke("folder:export"),
   setSelectedFile: (relativePath) => ipcRenderer.invoke("state:selected", relativePath),
