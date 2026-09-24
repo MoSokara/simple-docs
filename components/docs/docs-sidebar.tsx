@@ -1,18 +1,13 @@
 "use client";
 
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, GripVertical } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { DocFile, DocFolder } from "@/types/docs";
 import { FileTree } from "./file-tree";
 
-type Props = {
-  tree: DocFolder | null;
-  rootPath: string | null;
-  selectedPath: string | null;
-  mobileOpen: boolean;
-  busy: boolean;
-  onSelect: (file: DocFile) => void;
-  onOpenFolder: () => void;
-};
+const MIN_WIDTH = 220;
+const MAX_WIDTH = 440;
+const DEFAULT_WIDTH = 288;
 
 function folderName(rootPath: string | null) {
   if (!rootPath) return "No folder";
@@ -27,20 +22,74 @@ export function DocsSidebar({
   busy,
   onSelect,
   onOpenFolder,
-}: Props) {
+}: {
+  tree: DocFolder | null;
+  rootPath: string | null;
+  selectedPath: string | null;
+  mobileOpen: boolean;
+  busy: boolean;
+  onSelect: (file: DocFile) => void;
+  onOpenFolder: () => void;
+}) {
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  useEffect(() => {
+    function onMove(event: PointerEvent) {
+      if (!resizeRef.current) return;
+
+      setWidth(Math.min(
+        MAX_WIDTH,
+        Math.max(
+          MIN_WIDTH,
+          resizeRef.current.startWidth + event.clientX - resizeRef.current.startX,
+        ),
+      ));
+    }
+
+    function onUp() {
+      if (!resizeRef.current) return;
+      resizeRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, []);
+
+  function startResize(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return;
+
+    event.preventDefault();
+    resizeRef.current = { startX: event.clientX, startWidth: width };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }
+
   return (
     <aside
+      style={{ width: `${width}px` }}
       className={
-        "absolute inset-y-14 left-0 z-30 w-72 border-r border-border bg-bg-alt transition-transform md:static md:translate-x-0 " +
+        "absolute inset-y-14 left-0 z-30 max-w-[calc(100vw-3rem)] shrink-0 border-r border-border bg-bg-alt " +
+        "transition-transform md:static md:translate-x-0 " +
         (mobileOpen ? "translate-x-0" : "-translate-x-full")
       }
     >
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="border-b border-border px-3 py-2.5">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
-            <FolderOpen size={14} />
-            <span className="truncate">{folderName(rootPath)}</span>
-          </div>
+      <div className="relative flex h-full min-h-0 flex-col">
+        <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+          <FolderOpen size={15} className="text-muted" />
+          <span className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+            {folderName(rootPath)}
+          </span>
+          <span className="ml-auto text-[11px] text-placeholder">Explorer</span>
         </div>
 
         <div className="docs-scroll min-h-0 flex-1 overflow-auto py-2">
@@ -51,15 +100,34 @@ export function DocsSidebar({
           )}
         </div>
 
-        <div className="border-t border-border p-2">
+        <div className="shrink-0 border-t border-border p-2">
           <button
             onClick={onOpenFolder}
             disabled={busy}
-            className="flex w-full items-center justify-center gap-2 border border-border px-3 py-2 text-sm text-soft hover:bg-hover disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 px-3 py-2 text-sm text-soft hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FolderOpen size={16} />
             {busy ? "Opening…" : "Open another folder"}
           </button>
+        </div>
+
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize file explorer"
+          tabIndex={0}
+          onPointerDown={startResize}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft") setWidth((value) => Math.max(MIN_WIDTH, value - 16));
+            if (event.key === "ArrowRight") setWidth((value) => Math.min(MAX_WIDTH, value + 16));
+          }}
+          className="group absolute inset-y-0 -right-1 hidden w-2 cursor-col-resize md:block"
+        >
+          <div className="mx-auto h-full w-px bg-transparent transition-colors group-hover:bg-brand/60" />
+          <GripVertical
+            size={12}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-placeholder opacity-0 transition-opacity group-hover:opacity-100"
+          />
         </div>
       </div>
     </aside>
