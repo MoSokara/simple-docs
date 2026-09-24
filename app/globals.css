@@ -165,13 +165,18 @@ button:not(:disabled) { cursor: pointer; }
   font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 .markdown pre {
-  position: relative;
   overflow: auto;
   margin: 1.25rem 0;
   background: var(--token-code-bg);
   border: 1px solid var(--token-border);
   border-radius: 7px;
-  padding: 2.75rem 1rem 1rem;
+  padding: 1rem;
+}
+.markdown-code-wrapper {
+  position: relative;
+}
+.markdown-code-wrapper pre {
+  padding-top: 2.75rem;
 }
 .markdown pre code {
   display: block;
