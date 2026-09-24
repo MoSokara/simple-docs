@@ -10,10 +10,10 @@ It does not copy your documentation into the project, IndexedDB, GitHub, or a da
 - Build a file-explorer-style tree from the real folder.
 - Keep folders collapsed by default and expand/collapse them individually.
 - Resize the Explorer sidebar by dragging its right edge.
-- Read `.md`, `.txt`, `.pdf`, common images, and common code/text files.
+- Read `.md`, `.txt`, `.pdf`, common images, and common code/text files; recognize Word, PowerPoint, Excel, and Access files.
 - Recognize Word, PowerPoint, Excel, and Access files and open them with the installed desktop application.
 - Search file names, paths, and text/code contents.
-- Open Markdown, TXT, and code files directly in VS Code.
+- Open Markdown, TXT, and code files directly in VS Code; open Office files with the installed desktop application.
 - Highlight fenced Markdown code blocks by language and copy them with one click.
 - Follow Markdown links between files and headings inside the documentation folder.
 - Keep the selected folder and last selected file between launches.
@@ -231,6 +231,7 @@ components/docs/
   file-tree.tsx
   file-type.ts
   file-viewer.tsx
+  markdown-viewer.tsx
   markdown-viewer.tsx
 
 electron/
