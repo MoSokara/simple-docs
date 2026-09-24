@@ -42,8 +42,8 @@ function isExternalHref(href: string) {
   return /^(https?|mailto):/i.test(href);
 }
 
-function addCodeToolbar(pre: HTMLElement, code: string, language: string) {
-  if (pre.querySelector("[data-copy-code]")) return;
+function addCodeToolbar(container: HTMLElement, code: string, language: string) {
+  if (container.querySelector("[data-copy-code]")) return;
 
   const toolbar = document.createElement("div");
   toolbar.className = "markdown-code-toolbar";
@@ -62,7 +62,7 @@ function addCodeToolbar(pre: HTMLElement, code: string, language: string) {
   button.title = "Copy code";
 
   toolbar.append(label, button);
-  pre.prepend(toolbar);
+  container.prepend(toolbar);
 }
 
 async function copyText(value: string) {
@@ -134,16 +134,18 @@ export function MarkdownViewer({
 
             if (!active) return;
 
-            const wrapper = document.createElement("div");
-            wrapper.innerHTML = highlighted;
+            const markup = document.createElement("div");
+            markup.innerHTML = highlighted;
 
-            const newPre = wrapper.querySelector("pre");
+            const newPre = markup.querySelector("pre");
             const originalPre = codeElement.parentElement;
-
             if (!newPre || !originalPre) return;
 
-            addCodeToolbar(newPre, rawCode, language);
-            originalPre.replaceWith(newPre);
+            const wrapper = document.createElement("div");
+            wrapper.className = "markdown-code-wrapper";
+            wrapper.appendChild(newPre);
+            addCodeToolbar(wrapper, rawCode, language);
+            originalPre.replaceWith(wrapper);
           }),
         );
       }
@@ -151,6 +153,7 @@ export function MarkdownViewer({
       if (anchor) {
         window.requestAnimationFrame(() => {
           if (!active) return;
+
           document.getElementById(anchor)?.scrollIntoView({
             block: "start",
             behavior: "smooth",
