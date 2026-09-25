@@ -1,153 +1,104 @@
 # Simple Docs
 
-Simple Docs is a small personal documentation app that reads a **real folder on your computer**.
+Simple Docs is a local-first desktop documentation viewer built with Next.js, React, and Electron.
 
-It does not copy your documentation into the project, IndexedDB, GitHub, or a database.
+The source of truth is always the **real folder on your computer**. The app does not copy documents into a database or IndexedDB.
 
-## What it does
+## Features
 
-- Open any local folder such as `Docs/`.
-- Build a file-explorer-style tree from the real folder.
-- Keep folders collapsed by default and expand/collapse them individually.
-- Resize the Explorer sidebar by dragging its right edge.
-- Read `.md`, `.txt`, `.pdf`, common images, and common code/text files; recognize Word, PowerPoint, Excel, and Access files.
-- Recognize Word, PowerPoint, Excel, and Access files and open them with the installed desktop application.
+- Open any local folder.
+- Explorer-style file tree with collapsed folders.
+- Resizable Explorer sidebar.
 - Search file names, paths, and text/code contents.
-- Open Markdown, TXT, and code files directly in VS Code; open Office files with the installed desktop application.
-- Highlight fenced Markdown code blocks by language and copy them with one click.
-- Follow Markdown links between files and headings inside the documentation folder.
-- Keep the selected folder and last selected file between launches.
-- Watch the selected folder for external changes.
-- Refresh the tree and currently opened file when the real files change.
-- Export the complete selected folder as a compressed `.zip` backup with live progress.
-- Only show the backup as ready after the ZIP has finished and closed successfully.
+- Preview Markdown, TXT, PDF, and images.
+- Syntax-highlight common code files with Shiki.
+- Copy fenced Markdown code blocks.
+- Markdown links to files and headings.
+- Open Markdown/TXT/code files directly in VS Code.
+- Recognize and open Word, PowerPoint, Excel, and Access files with the desktop default application.
+- Watch the real folder for external changes.
+- Restore the last opened folder and selected file.
+- Export the whole folder as a ZIP backup with progress.
+- No Electron default File/Edit/View/Window menu bar; the interface uses the application's own toolbar.
 
-## Why desktop
+## Supported document groups
 
-The important requirements of this project are local filesystem access, external editor launching, and watching a real directory.
+| Group | Examples |
+| --- | --- |
+| Markdown | `.md` |
+| Text | `.txt` |
+| Code | JS, JSX, TS, TSX, JSON, HTML, CSS, SCSS, Vue, Svelte, Python, Java, C/C++, C#, Go, Rust, PHP, SQL, shell, YAML, TOML, GraphQL, Prisma, Terraform, Dart, Swift, Kotlin, and more |
+| PDF | `.pdf` |
+| Images | PNG, JPG, JPEG, WEBP, GIF, SVG |
+| Word | DOC, DOCX, DOCM, DOT, DOTX |
+| PowerPoint | PPT, PPTX, PPTM, PPS, PPSX, POT, POTX |
+| Excel | XLS, XLSX, XLSM, XLSB, XLT, XLTX |
+| Access | MDB, ACCDB, ACCDE, MDE |
 
-A normal browser cannot safely launch VS Code or freely access arbitrary local directories. Simple Docs therefore uses Electron for the desktop shell while Next.js/React handles the UI. Electron's native folder dialog returns local paths, and its IPC/preload model keeps Node filesystem access out of the renderer.
+Office files are recognized in the Explorer and opened with the installed desktop application instead of being converted into an in-app editor.
 
-## Data model
-
-Simple Docs has no document database.
-
-```
-Your computer
-└── Docs/
-    ├── Git/
-    │   ├── aliases.md
-    │   └── config.md
-    ├── CS50/
-    │   └── Week 1 - C/
-    │       └── notes.pdf
-    ├── Office/
-    │   ├── plan.docx
-    │   ├── lessons.pptx
-    │   └── grades.xlsx
-    ├── Images/
-    │   └── ASCII Code.png
-    └── notes.txt
-```
-
-Simple Docs only stores two small pieces of application state in Electron's user-data directory:
-
-- last opened folder
-- last selected file
-
-The actual documents remain where you keep them.
-
-## Editing and opening workflow
-
-1. Open your documentation folder.
-2. Select a Markdown, TXT, or code file.
-3. Click **Edit**.
-4. Simple Docs launches the original file in VS Code.
-5. Save the file in VS Code.
-6. Simple Docs detects the filesystem change and reloads the file/tree.
-
-For Word, PowerPoint, Excel, and Access, Simple Docs recognizes the file type and uses the operating system's default application. In-app Office rendering/editing is intentionally not part of the current architecture.
-
-## Import / Export
-
-There is intentionally no upload operation.
-
-**Import** means **Open Folder**: choose the real folder you already have on the device.
-
-**Export** means **Export ZIP**: choose where to save a compressed copy of the currently opened folder. The app calculates source statistics first, reports compression progress, and only marks the ZIP ready after the output stream closes successfully.
-
-The original folder is never moved or deleted by export.
-
-## Markdown
-
-Markdown is rendered in a dedicated viewer:
+## Markdown pipeline
 
 ```
-Markdown source
+Markdown file
     ↓
 marked
     ↓
 DOMPurify
     ↓
-HTML
+Markdown HTML
     ↓
 Shiki for fenced code blocks
 ```
 
-Supported navigation includes:
+Heading links such as `[1. MongoDB](#1-mongodb)` are handled inside the scrollable document area. Headings receive stable IDs and duplicate headings get numbered suffixes.
 
-- `#heading` links to headings in the current document.
-- `other-file.md` opens another file in the selected local folder.
-- `other-file.md#heading` opens the file and scrolls to its heading.
-- `http://`, `https://`, and `mailto:` links open externally.
-
-Fenced code blocks such as ```js, ```ts, ```python, and other supported languages receive syntax highlighting and a Copy action.
-
-## Electron mental model
-
-Think of Electron as a **desktop shell around your web app**.
+Relative document links are resolved from the current Markdown file:
 
 ```
-┌──────────────────────────────┐
-│ Next.js + React              │
-│ UI / components / state      │
-└──────────────┬───────────────┘
-               │ window.simpleDocs
-               ▼
-┌──────────────────────────────┐
-│ preload.cjs                  │
-│ safe allowlisted bridge      │
-└──────────────┬───────────────┘
-               │ IPC
-               ▼
-┌──────────────────────────────┐
-│ Electron main.cjs            │
-│ filesystem / dialog / shell  │
-│ VS Code / watcher / ZIP      │
-└──────────────┬───────────────┘
-               ▼
-        Windows / macOS / Linux
+guide.md
+guide.md#mongodb
+../shared/setup.md
+```
+
+External web and mail links are opened by the operating system.
+
+## Electron architecture
+
+Simple Docs separates the web UI from desktop capabilities:
+
+```
+Next.js + React renderer
+        ↓
+electron/preload.cjs
+        ↓
+IPC
+        ↓
+electron/main.cjs
+        ↓
+filesystem / dialogs / apps / watcher / ZIP
 ```
 
 ### Renderer
 
-Your Next.js/React code runs in the renderer process. It handles:
+React components handle the UI and application state:
 
-- UI
-- component state
-- search input
-- selected file
-- Markdown rendering
-- resizing the sidebar
-- progress bars
-
-It should not directly call Node's filesystem APIs in this architecture.
+```
+components/docs/
+  docs-app.tsx
+  docs-header.tsx
+  docs-sidebar.tsx
+  file-tree.tsx
+  file-viewer.tsx
+  markdown-viewer.tsx
+  code-viewer.tsx
+```
 
 ### Preload
 
-`electron/preload.cjs` is the bridge between the web UI and Electron.
+`preload.cjs` exposes a small allowlisted API through Electron's `contextBridge`.
 
-It exposes a small API through `contextBridge`, for example:
+Examples:
 
 ```ts
 window.simpleDocs.openFolder()
@@ -156,64 +107,47 @@ window.simpleDocs.openInEditor(path)
 window.simpleDocs.exportZip()
 ```
 
-The renderer asks for an operation; it does not receive unrestricted Node access.
-
 ### Main process
 
-`electron/main.cjs` is the part that can talk to the operating system.
+`main.cjs` owns the privileged desktop work:
 
-It owns:
-
-- real folder paths
-- `fs` / `fs.promises`
-- folder scanning
-- filesystem watching
-- native dialogs
+- filesystem access
+- path validation
+- native folder/save dialogs
 - VS Code launching
-- opening files with default desktop applications
+- default application launching
+- Explorer reveal
+- filesystem watching
 - ZIP creation
-- secure external-link handling
+- external-link handling
 
 ### IPC
 
-IPC means **Inter-Process Communication**.
-
-For example:
+A read operation follows this path:
 
 ```
 React
-  │
-  │ ipcRenderer.invoke("file:read", "Git/config.md")
-  ▼
-main.cjs
-  │
-  │ fs.readFile(...)
-  ▼
-real file on disk
-  │
-  ▼
-main.cjs
-  │
-  │ IPC response
-  ▼
-React
+  ↓
+window.simpleDocs.readFile(path)
+  ↓
+preload
+  ↓
+ipcRenderer.invoke("file:read", path)
+  ↓
+ipcMain.handle("file:read", ...)
+  ↓
+fs.readFile(...)
+  ↓
+React receives the response
 ```
 
-This is one of the most important Electron concepts for this project.
+The renderer does not receive unrestricted Node.js filesystem access.
 
-### Filesystem watcher
+## Why Electron
 
-The main process watches the opened folder. When VS Code, Windows Explorer, or another program changes a file, Electron emits a `folder:changed` event and the React app rescans/reloads.
+A normal browser is not a suitable shell for this project because the application needs direct desktop capabilities such as choosing arbitrary local folders, launching VS Code, revealing files in the system file manager, watching local folders, and creating backups.
 
-### Security model
-
-The important rule is:
-
-```
-Renderer → small preload API → validated main-process operation
-```
-
-Do not expose the whole Node API to the renderer. Keep the bridge explicit and validate paths in the main process.
+Electron provides the desktop shell while Next.js/React provides the interface.
 
 ## Project structure
 
@@ -224,6 +158,7 @@ app/
   globals.css
 
 components/docs/
+  code-viewer.tsx
   docs-app.tsx
   docs-header.tsx
   docs-sidebar.tsx
@@ -231,7 +166,6 @@ components/docs/
   file-tree.tsx
   file-type.ts
   file-viewer.tsx
-  markdown-viewer.tsx
   markdown-viewer.tsx
 
 electron/
@@ -272,40 +206,46 @@ Type-check:
 npm run typecheck
 ```
 
-Build the Next.js UI:
+Lint:
+
+```bash
+npm run lint
+```
+
+Build:
 
 ```bash
 npm run build
 ```
 
-## What you need to learn for Electron
+The repository intentionally keeps `package.json` as the dependency source and uses `.npmrc` to prevent npm from creating `package-lock.json`.
 
-For this project, you do **not** need to learn all of Electron at once.
+## Electron learning path
 
-Learn in this order:
+For this project, learn Electron in this order:
 
-1. Electron architecture: main process, renderer process, preload.
-2. IPC: `ipcRenderer.invoke()`, `ipcMain.handle()`, events.
-3. `contextBridge` and Electron security.
-4. Node.js `fs` and `path`.
-5. Electron dialogs and shell APIs.
-6. `BrowserWindow` and window lifecycle.
-7. Filesystem watching with `fs.watch`.
-8. Packaging and installers after the app itself is stable.
+1. Main process vs renderer process.
+2. Preload and `contextBridge`.
+3. IPC with `ipcRenderer.invoke()` and `ipcMain.handle()`.
+4. Node.js `fs`, `path`, and `child_process`.
+5. Electron `dialog`, `shell`, and `BrowserWindow`.
+6. Filesystem watching.
+7. Packaging and installers.
 
-Your React/Next.js knowledge already covers most of the renderer side. The main new skills are **Node.js filesystem work + Electron main/preload/IPC**.
+Your React/Next.js knowledge already covers most of the renderer side. The main new concepts are **desktop APIs, IPC, preload security, and Node.js filesystem work**.
 
-## Future changes
+## Important design rule
 
-Keep the real local-folder model as the core.
+Keep the local folder as the source of truth.
 
-Possible later additions:
+```
+real folder
+   ↓
+Electron filesystem
+   ↓
+React tree + viewer
+   ↓
+VS Code / desktop apps
+```
 
-- polished custom context menus
-- file/folder rename and move operations
-- better PDF controls
-- native installers for Windows/macOS/Linux
-- optional cloud backup/sync based on ZIP backups
-- optional mobile version with a separate storage layer
-
-Do not reintroduce IndexedDB/Dexie as the primary document store unless the product requirements change. The real local folder should remain the source of truth.
+Do not reintroduce a database or IndexedDB as the primary document store unless the product requirements change.
