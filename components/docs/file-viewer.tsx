@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { desktop } from "@/lib/desktop-api";
 import type { DocFile } from "@/types/docs";
+import { CodeViewer } from "./code-viewer";
 import { FILE_TYPE_META } from "./file-type";
 import { MarkdownViewer } from "./markdown-viewer";
 
@@ -22,11 +23,6 @@ function decodeBase64(base64: string) {
   return new TextDecoder().decode(
     Uint8Array.from(atob(base64), (char) => char.charCodeAt(0)),
   );
-}
-
-function rootFolderName(rootPath: string | null) {
-  if (!rootPath) return "Folder";
-  return rootPath.split(/[\\/]/).filter(Boolean).pop() ?? "Folder";
 }
 
 function iconFor(type: DocFile["type"]) {
@@ -40,9 +36,9 @@ function iconFor(type: DocFile["type"]) {
 }
 
 function sizeLabel(size: number) {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  if (size < 1024) return size + " B";
+  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+  return (size / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 function needsExternalOpen(type: DocFile["type"]) {
@@ -51,13 +47,11 @@ function needsExternalOpen(type: DocFile["type"]) {
 
 export function FileViewer({
   file,
-  rootPath,
   anchor,
   onEdit,
   onNavigate,
 }: {
   file: DocFile | null;
-  rootPath: string | null;
   anchor: string | null;
   onEdit: (file: DocFile) => Promise<void> | void;
   onNavigate: (path: string, anchor: string | null) => void;
@@ -95,6 +89,7 @@ export function FileViewer({
           atob(data.base64),
           (char) => char.charCodeAt(0),
         );
+
         objectUrl = URL.createObjectURL(
           new Blob([binary], { type: data.mimeType }),
         );
@@ -120,11 +115,7 @@ export function FileViewer({
 
     try {
       const result = await desktop.revealInExplorer(file.path);
-      if (!result.ok) {
-        setActionMessage(result.message ?? "Could not open the containing folder.");
-      } else {
-        setActionMessage("");
-      }
+      setActionMessage(result.ok ? "" : (result.message ?? "Could not open the containing folder."));
     } catch (reason) {
       setActionMessage(
         reason instanceof Error ? reason.message : "Could not open the containing folder.",
@@ -166,11 +157,14 @@ export function FileViewer({
 
   return (
     <section className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-bg px-3 py-2.5 md:px-4">
+      <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border bg-bg px-3 md:px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <Icon size={17} className={meta.iconClass} />
-          <span className={`truncate text-sm font-medium ${meta.colorClass}`}>
-            {rootFolderName(rootPath)} / {file.name}
+          <Icon size={16} className={"shrink-0 " + meta.iconClass} />
+          <span
+            className={"min-w-0 truncate text-sm font-medium " + meta.colorClass}
+            title={file.path}
+          >
+            {file.path}
           </span>
         </div>
 
@@ -190,7 +184,7 @@ export function FileViewer({
             <button
               onClick={() => void openDefault()}
               className="inline-flex h-8 items-center gap-2 px-2.5 text-sm font-medium text-soft hover:bg-hover hover:text-text"
-              title={`Open with ${meta.label}`}
+              title={"Open with " + meta.label}
             >
               <ExternalLink size={15} />
               Open file
@@ -218,8 +212,8 @@ export function FileViewer({
         {externalOpen ? (
           <div className="flex min-h-full items-center justify-center p-8 text-center">
             <div className="max-w-md">
-              <Icon size={46} className={`mx-auto mb-4 ${meta.iconClass}`} />
-              <p className={`font-semibold ${meta.colorClass}`}>
+              <Icon size={46} className={"mx-auto mb-4 " + meta.iconClass} />
+              <p className={"font-semibold " + meta.colorClass}>
                 {meta.label} file
               </p>
               <p className="mt-2 text-sm text-muted">
@@ -275,16 +269,10 @@ export function FileViewer({
                       }
                     }}
                   />
+                ) : file.type === "code" ? (
+                  <CodeViewer code={payload.text} fileName={file.name} />
                 ) : (
-                  <pre
-                    className={
-                      file.type === "code"
-                        ? "code-viewer min-h-full"
-                        : "plain-text min-h-full"
-                    }
-                  >
-                    {payload.text}
-                  </pre>
+                  <pre className="plain-text min-h-full">{payload.text}</pre>
                 )}
               </div>
             )}
