@@ -95,10 +95,10 @@ const CODE_LANGUAGES: Record<string, string> = {
   ".groovy": "groovy",
   ".gradle": "gradle",
   ".cmake": "cmake",
-  ".mk": "makefile",
-  ".make": "makefile",
-  ".tf": "hcl",
-  ".tfvars": "hcl",
+  ".mk": "make",
+  ".make": "make",
+  ".tf": "terraform",
+  ".tfvars": "terraform",
 };
 
 export function codeLanguageFromName(fileName: string) {
