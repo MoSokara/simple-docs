@@ -42,6 +42,38 @@ function isExternalHref(href: string) {
   return /^(https?|mailto):/i.test(href);
 }
 
+function slugifyHeading(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[!@#$%^&*()+=[\]{}\\|;:'",.<>/?]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || "heading";
+}
+
+function ensureHeadingIds(article: HTMLElement) {
+  const used = new Map<string, number>();
+
+  article.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((heading) => {
+    const base = slugifyHeading(heading.textContent ?? "");
+    const count = used.get(base) ?? 0;
+
+    used.set(base, count + 1);
+    heading.id = count === 0 ? base : base + "-" + count;
+  });
+}
+
+function scrollToAnchor(anchor: string) {
+  const decoded = decodeURIComponent(anchor);
+  document.getElementById(decoded)?.scrollIntoView({
+    block: "start",
+    behavior: "smooth",
+  });
+}
+
 function addCodeToolbar(container: HTMLElement, code: string, language: string) {
   if (container.querySelector("[data-copy-code]")) return;
 
@@ -98,11 +130,14 @@ export function MarkdownViewer({
   useEffect(() => {
     let active = true;
 
-    async function enhanceCodeBlocks() {
+    async function enhanceDocument() {
       const article = articleRef.current;
       if (!article) return;
 
+      ensureHeadingIds(article);
+
       const blocks = Array.from(article.querySelectorAll("pre > code"));
+
       if (blocks.length) {
         const { codeToHtml } = await import("shiki");
 
@@ -152,17 +187,12 @@ export function MarkdownViewer({
 
       if (anchor) {
         window.requestAnimationFrame(() => {
-          if (!active) return;
-
-          document.getElementById(anchor)?.scrollIntoView({
-            block: "start",
-            behavior: "smooth",
-          });
+          if (active) scrollToAnchor(anchor);
         });
       }
     }
 
-    void enhanceCodeBlocks();
+    void enhanceDocument();
 
     return () => {
       active = false;
@@ -199,7 +229,11 @@ export function MarkdownViewer({
     const href = link.getAttribute("href");
     if (!href) return;
 
-    if (href.startsWith("#")) return;
+    if (href.startsWith("#")) {
+      event.preventDefault();
+      scrollToAnchor(href.slice(1));
+      return;
+    }
 
     if (isExternalHref(href)) {
       event.preventDefault();
@@ -220,10 +254,7 @@ export function MarkdownViewer({
       if (resolved.path) {
         onNavigate(resolved.path, resolved.anchor);
       } else if (resolved.anchor) {
-        document.getElementById(resolved.anchor)?.scrollIntoView({
-          block: "start",
-          behavior: "smooth",
-        });
+        scrollToAnchor(resolved.anchor);
       }
     } catch {}
   }
