@@ -1,9 +1,12 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, Menu } = require("electron");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { spawn, execFileSync } = require("node:child_process");
 const archiver = require("archiver");
+
+// Use the application's own toolbar instead of Electron's default menu bar.
+Menu.setApplicationMenu(null);
 
 const SUPPORTED = new Map([
   [".md", "markdown"], [".txt", "text"], [".pdf", "pdf"],
@@ -21,6 +24,10 @@ const CODE_EXTENSIONS = new Set([
   ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".cs", ".java", ".kt", ".kts",
   ".go", ".rs", ".py", ".rb", ".php", ".sql", ".sh", ".bash", ".zsh",
   ".ps1", ".bat", ".cmd", ".yaml", ".yml", ".toml", ".ini", ".conf", ".env",
+  ".jsonc", ".graphql", ".gql", ".prisma", ".proto", ".astro", ".dart", ".swift",
+  ".m", ".mm", ".r", ".lua", ".pl", ".pm", ".ex", ".exs", ".erl", ".hrl",
+  ".fs", ".fsx", ".vb", ".asm", ".s", ".zig", ".nim", ".clj", ".cljs", ".groovy",
+  ".gradle", ".cmake", ".mk", ".make", ".tf", ".tfvars",
 ]);
 
 const PREVIEW_TYPES = new Set(["markdown", "text", "code", "pdf", "image"]);
@@ -552,6 +559,10 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  if (process.platform === "win32" || process.platform === "linux") {
+    mainWindow.removeMenu();
+  }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (/^(https?|mailto):/i.test(url)) {
