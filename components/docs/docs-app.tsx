@@ -275,7 +275,6 @@ export function DocsApp() {
         <main className="min-w-0 flex-1 overflow-hidden bg-bg">
           <FileViewer
             file={selected}
-            rootPath={rootPath}
             anchor={selectedAnchor}
             onEdit={editFile}
             onNavigate={navigateTo}
