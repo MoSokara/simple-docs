@@ -50,13 +50,14 @@ export function FileTree({
       {!isRoot && (
         <button
           onClick={() => setOpen((value) => !value)}
-          className="flex w-full items-center gap-1 px-2 py-1.5 text-left text-sm text-soft hover:bg-hover"
+          className="flex min-w-0 w-full items-center gap-1 px-2 py-1.5 text-left text-sm text-soft hover:bg-hover"
           style={{ paddingLeft: depth * 12 + 8 }}
           aria-expanded={open}
+          title={folder.path}
         >
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          {open ? <FolderOpen size={16} /> : <Folder size={16} />}
-          <span className="truncate">{folder.name}</span>
+          {open ? <ChevronDown size={14} className="shrink-0" /> : <ChevronRight size={14} className="shrink-0" />}
+          {open ? <FolderOpen size={16} className="shrink-0" /> : <Folder size={16} className="shrink-0" />}
+          <span className="min-w-0 truncate">{folder.name}</span>
         </button>
       )}
 
@@ -83,13 +84,13 @@ export function FileTree({
                 title={file.path}
                 onClick={() => onSelect(file)}
                 className={
-                  "group flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors " +
+                  "group flex min-w-0 w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors " +
                   (selectedPath === file.path ? "bg-hover" : "hover:bg-hover")
                 }
                 style={{ paddingLeft: level * 12 + 12 }}
               >
-                <Icon size={15} className={meta.iconClass} />
-                <span className={`min-w-0 truncate ${meta.colorClass}`}>
+                <Icon size={15} className={"shrink-0 " + meta.iconClass} />
+                <span className={"min-w-0 truncate " + meta.colorClass}>
                   {file.name}
                 </span>
               </button>
