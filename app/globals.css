@@ -246,3 +246,25 @@ button:focus-visible, input:focus-visible, [role="separator"]:focus-visible {
   outline: 2px solid var(--token-brand);
   outline-offset: 2px;
 }
+
+
+.code-viewer-highlighted {
+  min-height: calc(100vh - 120px);
+  overflow: auto;
+  color: var(--token-code-foreground);
+  background: var(--token-code-bg);
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-size: .9rem;
+  line-height: 1.75;
+  tab-size: 2;
+}
+.code-viewer-highlighted .shiki {
+  min-width: max-content;
+  min-height: 100%;
+  margin: 0;
+  padding: 1.25rem 0;
+  background: var(--token-code-bg) !important;
+}
+.code-viewer-highlighted .shiki code {
+  font-family: inherit;
+}
