@@ -2,89 +2,78 @@
 
 Simple Docs is distributed as a Windows x64 desktop application.
 
-## What gets released
+## Current releases
 
-- NSIS installer: install the application normally on Windows.
-- ZIP archive: extract and run the packaged application without installing it.
-- Windows update metadata used by the installed app for automatic updates.
+- Stable: v1.0.0
+- Next release in development: v1.1.0
 
-The ZIP build is for portable/manual distribution. Automatic updates are intended for the installed NSIS version.
+## Release artifacts
 
-## First release
+- NSIS installer.
+- ZIP archive.
+- Windows update metadata used by electron-updater.
 
-The first release version is 1.0.0.
+The ZIP is intended for portable/manual distribution. Automatic updates are intended for the installed NSIS version.
 
-Run the local checks:
+## Local checks
 
+Run before tagging:
+
+~~~bash
 npm install
 npm run typecheck
 npm run lint
 npm run build
 npm run dist
+~~~
 
-npm run dist builds the Windows installer and ZIP locally. Test the installer before publishing.
+Test the generated Windows installer manually before publishing.
 
-## Publish a release
+## Publish v1.1.0
 
-After the release commit is on main:
+Update package.json to 1.1.0, merge the feature work into main, then:
 
-git tag v1.0.0
-git push origin v1.0.0
+~~~bash
+git switch main
+git pull origin main
+git tag v1.1.0
+git push origin v1.1.0
+~~~
 
-The GitHub Actions workflow in .github/workflows/release.yml will check out the tag, install dependencies, verify the version, run typecheck and lint, build Next.js, package Windows x64, and publish the assets to the GitHub Release.
+The tag must exactly match the package version.
 
-Because the repository is public, the installed application can check public GitHub Releases without storing a GitHub token in the app.
+GitHub Actions then runs typecheck, lint, Next build, electron-builder, and publishes the GitHub Release.
 
-## How the application updates
+## Automatic updates
 
-The packaged Electron app uses electron-updater.
+The packaged app uses electron-updater.
 
-Example:
+~~~text
+Installed v1.0.0
+       ↓
+GitHub v1.1.0
+       ↓
+download
+       ↓
+install on app quit
+       ↓
+launch v1.1.0
+~~~
 
-Installed 1.0.0
-        ↓
-GitHub 1.0.1
-        ↓
-Download update
-        ↓
-Quit Simple Docs
-        ↓
-Install 1.0.1
-        ↓
-Start Simple Docs 1.0.1
-
-Do not use draft-only releases for production updates. The installer and update metadata must be published together by the release workflow.
+Always publish the installer and updater metadata together through the release workflow.
 
 ## Versioning
 
-Use Semantic Versioning:
-
+~~~text
 1.0.0 → 1.0.1   bug fixes
-1.0.0 → 1.1.0   new backward-compatible features
+1.0.0 → 1.1.0   backward-compatible features
 1.0.0 → 2.0.0   breaking changes
-
-Always update package.json before creating the matching Git tag.
-
-## Production architecture
-
-Development:
-
-Next.js dev server → http://localhost:3000 → Electron window
-
-Production:
-
-next build → out/ → Electron → simple-docs://app/ → Windows application
-
-The custom protocol keeps the packaged renderer separate from the user's filesystem. Electron's privileged desktop work continues to live in the main process, while the renderer communicates through the existing preload IPC bridge.
+~~~
 
 ## Code signing
 
-The first release is intentionally configured without Windows code signing so the packaging and update pipeline can be established first.
-
-Unsigned Windows applications can trigger SmartScreen or publisher warnings. When a code-signing certificate is available, configure signing for CI and re-enable update signature verification.
+The first public release is unsigned. Add signing later when a Windows certificate is available.
 
 ## Important rule
 
-The user's real documentation folder remains the source of truth.
-
-The installer does not package the user's documents, and an application update does not replace or copy that folder.
+The user's real documentation folder remains the source of truth. Application updates do not replace or copy that folder.

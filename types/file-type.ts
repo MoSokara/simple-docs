@@ -1,4 +1,14 @@
-import type { FileType } from "@/types/docs";
+export type FileType =
+  | "markdown"
+  | "text"
+  | "code"
+  | "pdf"
+  | "image"
+  | "word"
+  | "powerpoint"
+  | "excel"
+  | "access"
+  | "other";
 
 type FileTypeMeta = {
   label: string;
@@ -103,13 +113,10 @@ const CODE_LANGUAGES: Record<string, string> = {
 
 export function codeLanguageFromName(fileName: string) {
   const lower = fileName.toLowerCase();
-
   if (lower === "dockerfile") return "dockerfile";
   if (lower === "makefile") return "makefile";
   if (lower === ".gitignore" || lower === ".dockerignore") return "gitignore";
-
   const dot = lower.lastIndexOf(".");
   if (dot === -1) return "text";
-
   return CODE_LANGUAGES[lower.slice(dot)] ?? "text";
 }

@@ -1,3 +1,5 @@
+import type { FileType } from "./file-type";
+
 export type DocFile = {
   name: string;
   path: string;
