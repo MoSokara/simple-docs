@@ -619,14 +619,16 @@ function createWindow() {
     return { action: "deny" };
   });
 
-  mainWindow.loadURL("http://localhost:3000");
+  mainWindow.loadURL(app.isPackaged ? "simple-docs://app/" : "http://localhost:3000");
 }
 
 app.whenReady().then(async () => {
   await loadState();
   registerIpc();
+  if (app.isPackaged) registerAppProtocol();
   createWindow();
   startWatcher();
+  setupAutoUpdater();
 });
 
 app.on("window-all-closed", () => {
