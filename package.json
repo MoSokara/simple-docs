@@ -8,18 +8,21 @@
     "dev": "concurrently -k \"next dev\" \"wait-on http://localhost:3000 && electron . --dev\"",
     "build": "next build",
     "start": "concurrently -k \"next start\" \"wait-on http://localhost:3000 && electron .\"",
+    "dist": "npm run build && electron-builder --win nsis zip",
+    "release": "npm run build && electron-builder --win nsis zip --publish always",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "dompurify": "^3.4.16",
+    "electron-updater": "6.8.9",
     "lucide-react": "^1.48.0",
     "marked": "^18.0.14",
     "next": "16.3.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "shiki": "^4.4.3",
-    "archiver": "^7.0.1"
+    "shiki": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -28,10 +31,57 @@
     "@types/react-dom": "^19",
     "concurrently": "^9.2.1",
     "electron": "41.10.6",
+    "electron-builder": "26.16.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wait-on": "^9.0.1"
+  },
+  "build": {
+    "appId": "com.mosokara.simpledocs",
+    "productName": "Simple Docs",
+    "directories": {
+      "output": "dist"
+    },
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "out/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-Windows-${arch}.${ext}",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Simple Docs"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "MoSokara",
+      "repo": "simple-docs",
+      "releaseType": "release"
+    }
   }
 }
