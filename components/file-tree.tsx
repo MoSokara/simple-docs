@@ -103,9 +103,6 @@ export function FileTree({
               >
                 <FolderPlus size={14} />
               </button>
-              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover/action:opacity-100">
-                New Folder
-              </span>
             </div>
 
             <div className="group/action relative">
@@ -119,9 +116,6 @@ export function FileTree({
               >
                 <FilePlus2 size={14} />
               </button>
-              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover/action:opacity-100">
-                New File
-              </span>
             </div>
           </div>
         </div>
