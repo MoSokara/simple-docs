@@ -54,8 +54,8 @@ A folder context menu creates items inside that folder. A file context menu crea
 
 ## Delete flow
 
-The renderer sends a relative root-item path. Electron main verifies again that the target is exactly one level below the opened root, asks for native confirmation, removes the item, clears deleted selection state, and schedules a refresh.
+The renderer sends a relative root-item path. Electron main verifies that the target stays inside the opened root, asks for native confirmation, removes the nested file/folder, clears deleted selection state, and schedules a refresh.
 
 ## Root Explorer flow
 
-The sidebar root text shows the absolute root path using the native HTML `title` attribute. Double-clicking the text invokes `shell.openPath(rootPath)`.
+The sidebar root text shows the absolute root path using the native HTML `title` attribute. Double-clicking the text invokes `shell.openPath(rootPath)`. Context-menu Explorer actions reveal files in Explorer and open folders directly.
