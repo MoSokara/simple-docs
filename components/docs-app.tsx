@@ -164,9 +164,9 @@ export function DocsApp() {
     }
   }
 
-  async function deleteRootItem(relativePath: string) {
+  async function deleteItem(relativePath: string) {
     try {
-      const result = await desktop.deleteRootItem(relativePath);
+      const result = await desktop.deleteItem(relativePath);
       if (!result.ok || result.canceled) return;
 
       const deletedPath = relativePath.replaceAll("\\", "/");
@@ -376,7 +376,7 @@ export function DocsApp() {
           onOpenFolder={() => void openFolder()}
           onCreateFolder={(parentPath) => openCreateDialog("folder", parentPath)}
           onCreateFile={(parentPath) => openCreateDialog("file", parentPath)}
-          onDeleteRootItem={(relativePath) => void deleteRootItem(relativePath)}
+          onDeleteItem={(relativePath) => void deleteItem(relativePath)}
           onOpenRootInExplorer={async () => {
             if (!rootPath) return;
             const result = await desktop.openRootInExplorer();
