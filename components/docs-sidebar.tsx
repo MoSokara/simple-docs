@@ -10,7 +10,7 @@ const MIN_WIDTH = 220;
 const MAX_WIDTH = 440;
 const DEFAULT_WIDTH = 288;
 const CONTEXT_MENU_WIDTH = 208;
-const CONTEXT_MENU_HEIGHT = 160;
+const CONTEXT_MENU_HEIGHT = 204;
 const CONTEXT_MENU_GAP = 8;
 
 function folderName(rootPath: string | null) {
@@ -38,6 +38,7 @@ export function DocsSidebar({
   onCreateFolder,
   onCreateFile,
   onDeleteItem,
+  onOpenInExplorer,
   onOpenRootInExplorer,
 }: {
   tree: DocFolder | null;
@@ -50,6 +51,7 @@ export function DocsSidebar({
   onCreateFolder: (parentPath: string) => void;
   onCreateFile: (parentPath: string) => void;
   onDeleteItem: (relativePath: string) => void;
+  onOpenInExplorer: (relativePath: string) => Promise<void> | void;
   onOpenRootInExplorer: () => Promise<void> | void;
 }) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -245,6 +247,11 @@ export function DocsSidebar({
                 : contextMenu.target.parentPath;
               closeContextMenu();
               onCreateFile(parentPath);
+            }}
+            onOpenInExplorer={() => {
+              const targetPath = contextMenu.target.path;
+              closeContextMenu();
+              void onOpenInExplorer(targetPath);
             }}
             onDelete={() => {
               const targetPath = contextMenu.target.path;
