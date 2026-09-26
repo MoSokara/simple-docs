@@ -167,9 +167,6 @@ export function DocsSidebar({
               >
                 <FolderPlus size={15} />
               </button>
-              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                New Folder
-              </span>
             </div>
 
             <div className="group relative">
@@ -183,9 +180,6 @@ export function DocsSidebar({
               >
                 <FilePlus2 size={15} />
               </button>
-              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                New File
-              </span>
             </div>
           </div>
         </div>
