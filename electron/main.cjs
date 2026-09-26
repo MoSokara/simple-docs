@@ -10,6 +10,17 @@ const { autoUpdater } = require("electron-updater");
 // Use the application's own toolbar instead of Electron's default menu bar.
 Menu.setApplicationMenu(null);
 
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "simple-docs",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
+
 const SUPPORTED = new Map([
   [".md", "markdown"], [".txt", "text"], [".pdf", "pdf"],
   [".png", "image"], [".jpg", "image"], [".jpeg", "image"],
@@ -58,6 +69,41 @@ let changeTimer = null;
 let lastExportPath = null;
 
 const stateFile = () => path.join(app.getPath("userData"), "state.json");
+const rendererPath = path.join(__dirname, "..", "out");
+
+function registerAppProtocol() {
+  protocol.handle("simple-docs", (request) => {
+    const requestUrl = new URL(request.url);
+    let pathname = decodeURIComponent(requestUrl.pathname);
+
+    if (pathname === "/") {
+      pathname = "/index.html";
+    } else if (pathname.endsWith("/")) {
+      pathname += "index.html";
+    }
+
+    const requestedPath = path.resolve(rendererPath, "." + pathname);
+    const relativePath = path.relative(rendererPath, requestedPath);
+    const isSafe =
+      relativePath &&
+      !relativePath.startsWith("..") &&
+      !path.isAbsolute(relativePath);
+
+    if (!isSafe) {
+      return new Response("Not found", { status: 404 });
+    }
+
+    return net.fetch(pathToFileURL(requestedPath).toString());
+  });
+}
+
+function setupAutoUpdater() {
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  void autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+}
 
 async function loadState() {
   try {
