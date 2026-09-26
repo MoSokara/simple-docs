@@ -328,7 +328,7 @@ async function openRootInExplorer() {
   }
 }
 
-async function deleteRootItem(relativePath) {
+async function deleteItem(relativePath) {
   if (!rootPath) throw new Error("No folder is open.");
 
   const full = await existingPath(relativePath);
@@ -724,7 +724,7 @@ function registerIpc() {
   ipcMain.handle("folder:open", chooseFolder);
   ipcMain.handle("folder:create", (_event, relativeParent, name) => createFolder(relativeParent, name));
   ipcMain.handle("file:create", (_event, relativeParent, name) => createFile(relativeParent, name));
-  ipcMain.handle("root-item:delete", (_event, relativePath) => deleteRootItem(relativePath));
+  ipcMain.handle("root-item:delete", (_event, relativePath) => deleteItem(relativePath));
   ipcMain.handle("root:openInExplorer", openRootInExplorer);
   ipcMain.handle("folder:scan", () => rootPath ? scanFolder() : null);
   ipcMain.handle("file:read", (_event, relativePath) => readFile(relativePath));
