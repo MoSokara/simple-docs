@@ -150,6 +150,20 @@ async function existingPath(relativePath) {
   return full;
 }
 
+async function ensureWithinRoot(fullPath) {
+  const resolvedRoot = await fsp.realpath(rootPath);
+  const resolvedTarget = await fsp.realpath(fullPath);
+  const relative = path.relative(resolvedRoot, resolvedTarget);
+
+  if (
+    !relative ||
+    relative.startsWith(".." + path.sep) ||
+    path.isAbsolute(relative)
+  ) {
+    throw new Error("The target is outside the opened root folder.");
+  }
+}
+
 function typeOf(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   if (SUPPORTED.has(ext)) return SUPPORTED.get(ext);
@@ -342,6 +356,8 @@ async function deleteItem(relativePath) {
     throw new Error("The opened root folder itself cannot be deleted.");
   }
 
+  await ensureWithinRoot(full);
+
   const stat = await fsp.lstat(full);
   const confirmation = await dialog.showMessageBox(mainWindow, {
     type: "warning",
@@ -359,6 +375,8 @@ async function deleteItem(relativePath) {
   if (confirmation.response !== 1) {
     return { ok: true, canceled: true };
   }
+
+  await ensureWithinRoot(full);
 
   await fsp.rm(full, {
     recursive: stat.isDirectory(),
