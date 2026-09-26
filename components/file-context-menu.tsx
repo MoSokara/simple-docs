@@ -1,6 +1,6 @@
 "use client";
 
-import { FilePlus2, FolderPlus, Trash2 } from "lucide-react";
+import { FilePlus2, FolderOpen, FolderPlus, Trash2 } from "lucide-react";
 import { createPortal } from "react-dom";
 
 export type FileContextTarget = {
@@ -16,6 +16,7 @@ export function FileContextMenu({
   target,
   onCreateFolder,
   onCreateFile,
+  onOpenInExplorer,
   onDelete,
 }: {
   x: number;
@@ -23,6 +24,7 @@ export function FileContextMenu({
   target: FileContextTarget;
   onCreateFolder: () => void;
   onCreateFile: () => void;
+  onOpenInExplorer: () => void;
   onDelete: () => void;
 }) {
   if (typeof document === "undefined") return null;
@@ -63,6 +65,18 @@ export function FileContextMenu({
         >
           <FilePlus2 size={15} />
           New File
+        </button>
+      </div>
+
+      <div className="border-t border-border py-1">
+        <button
+          type="button"
+          role="menuitem"
+          onClick={onOpenInExplorer}
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-soft hover:bg-hover hover:text-text"
+        >
+          <FolderOpen size={15} />
+          Open in Explorer
         </button>
       </div>
 
