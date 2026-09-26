@@ -322,9 +322,15 @@ button:not(:disabled) { cursor: pointer; }
   scroll-margin-top: 1rem;
 }
 
-button:focus-visible, input:focus-visible, [role="separator"]:focus-visible {
+button:focus-visible, [role="separator"]:focus-visible {
   outline: 2px solid var(--token-brand);
   outline-offset: 2px;
+}
+
+input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--token-brand);
 }
 
 
