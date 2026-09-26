@@ -39,11 +39,11 @@ Test:
 - root and nested creation
 - duplicate names
 - invalid Windows names
-- root-only right click
+- right click on root-level and deeply nested files/folders
 - native delete confirmation
 - deleting a folder with contents
 - external watcher refresh
-- root header double-click
+- root header double-click and context-menu Open in Explorer
 - state restoration
 
 ## UI rules
