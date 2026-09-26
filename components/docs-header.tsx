@@ -2,6 +2,7 @@
 
 import { Download, Menu, Search, X } from "lucide-react";
 import type { DocFile, SearchResult } from "@/types/docs";
+import { fileColorStyle } from "@/types/file-type";
 
 type Props = {
   query: string;
@@ -14,19 +15,6 @@ type Props = {
   onExport: () => void;
   onToggleMobile: () => void;
 };
-
-function resultColor(type: SearchResult["type"]) {
-  if (type === "markdown") return "bg-file-markdown";
-  if (type === "text") return "bg-file-text";
-  if (type === "code") return "bg-file-code";
-  if (type === "pdf") return "bg-file-pdf";
-  if (type === "image") return "bg-file-image";
-  if (type === "word") return "bg-file-word";
-  if (type === "powerpoint") return "bg-file-powerpoint";
-  if (type === "excel") return "bg-file-excel";
-  if (type === "access") return "bg-file-access";
-  return "bg-file-other";
-}
 
 export function DocsHeader({
   query,
@@ -72,7 +60,7 @@ export function DocsHeader({
                   onClick={() => onSelectResult(result)}
                   className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-hover"
                 >
-                  <span className={"h-2 w-2 shrink-0 rounded-full " + resultColor(result.type)} />
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: fileColorStyle(result.name).color }} />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium text-text">{result.name}</span>
                     <span className="block truncate text-xs text-muted">{result.path}</span>

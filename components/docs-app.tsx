@@ -6,6 +6,7 @@ import type { DocFile, DocFolder, SearchResult } from "@/types/docs";
 import { DocsHeader } from "./docs-header";
 import { DocsSidebar } from "./docs-sidebar";
 import { ExportStatus } from "./export-status";
+import { NewItemDialog } from "./new-item-dialog";
 import { FileViewer } from "./file-viewer";
 
 function findFile(folder: DocFolder | null, target: string | null): DocFile | null {
@@ -42,6 +43,11 @@ export function DocsApp() {
   const [exportStatus, setExportStatus] = useState<"idle" | "preparing" | "compressing" | "complete" | "error">("idle");
   const [exportPath, setExportPath] = useState<string | null>(null);
   const [exportMessage, setExportMessage] = useState("");
+  const [creationType, setCreationType] = useState<"folder" | "file" | null>(null);
+  const [creationParentPath, setCreationParentPath] = useState("");
+  const [creationName, setCreationName] = useState("");
+  const [creationError, setCreationError] = useState("");
+  const [creationBusy, setCreationBusy] = useState(false);
 
   useEffect(() => {
     if (!mounted || !isDesktopAvailable()) return;
@@ -65,12 +71,11 @@ export function DocsApp() {
       .catch(() => active && setTree(null));
 
     const offFolder = desktop.onFolderChanged(async () => {
-      const current = selectedPathRef.current;
-
       try {
         const next = await desktop.scan();
         if (!active) return;
 
+        const current = selectedPathRef.current;
         setTree(next);
         const file = findFile(next, current);
         setSelected(file);
@@ -131,6 +136,103 @@ export function DocsApp() {
     };
   }, [query]);
 
+  function openCreateDialog(type: "folder" | "file", parentPath: string) {
+    setCreationType(type);
+    setCreationParentPath(parentPath);
+    setCreationName(type === "folder" ? "New Folder" : "new-file.md");
+    setCreationError("");
+  }
+
+  function closeCreateDialog() {
+    if (creationBusy) return;
+
+    setCreationType(null);
+    setCreationParentPath("");
+    setCreationName("");
+    setCreationError("");
+  }
+
+  async function refreshAfterCreation(createdPath?: string, selectCreatedFile = false) {
+    const next = await desktop.scan();
+    if (!next) return;
+
+    setTree(next);
+
+    if (selectCreatedFile && createdPath) {
+      const createdFile = findFile(next, createdPath);
+      if (createdFile) selectFile(createdFile);
+    }
+  }
+
+  async function deleteItem(relativePath: string) {
+    try {
+      const result = await desktop.deleteItem(relativePath);
+      if (!result.ok || result.canceled) return;
+
+      const deletedPath = relativePath.replaceAll("\\", "/");
+      const currentPath = selectedPathRef.current;
+      const selectionDeleted = !!currentPath && (
+        currentPath === deletedPath ||
+        currentPath.startsWith(deletedPath + "/")
+      );
+
+      const next = await desktop.scan();
+      setTree(next);
+
+      if (selectionDeleted) {
+        setSelected(null);
+        selectedPathRef.current = null;
+        setSelectedAnchor(null);
+        await desktop.setSelectedFile(null);
+      }
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Could not delete the item.",
+      );
+    }
+  }
+
+  async function submitCreateDialog() {
+    const name = creationName.trim();
+    if (!creationType) return;
+
+    if (!name) {
+      setCreationError("Enter a name.");
+      return;
+    }
+
+    setCreationBusy(true);
+    setCreationError("");
+
+    try {
+      const result = creationType === "folder"
+        ? await desktop.createFolder(creationParentPath, name)
+        : await desktop.createFile(creationParentPath, name);
+
+      if (!result.ok) {
+        setCreationError(result.message ?? "Could not create the item.");
+        return;
+      }
+
+      await refreshAfterCreation(
+        result.path,
+        creationType === "file",
+      );
+      setCreationType(null);
+      setCreationParentPath("");
+      setCreationName("");
+      setCreationError("");
+    } catch (error) {
+      setCreationError(
+        error instanceof Error ? error.message : "Could not create the item.",
+      );
+    } finally {
+      setCreationBusy(false);
+    }
+  }
+
   async function openFolder() {
     setBusy(true);
 
@@ -161,6 +263,22 @@ export function DocsApp() {
     const file = findFile(tree, path);
     if (!file) return;
     selectFile(file, anchor);
+  }
+
+  async function openInExplorer(relativePath: string) {
+    try {
+      const result = await desktop.revealInExplorer(relativePath);
+
+      if (!result.ok) {
+        window.alert(result.message ?? "Could not open the item in Explorer.");
+      }
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Could not open the item in Explorer.",
+      );
+    }
   }
 
   async function editFile(file: DocFile) {
@@ -234,6 +352,20 @@ export function DocsApp() {
         onToggleMobile={() => setMobileOpen((value) => !value)}
       />
 
+      <NewItemDialog
+        type={creationType}
+        parentPath={creationParentPath}
+        name={creationName}
+        error={creationError}
+        busy={creationBusy}
+        onNameChange={(value) => {
+          setCreationName(value);
+          if (creationError) setCreationError("");
+        }}
+        onSubmit={() => void submitCreateDialog()}
+        onClose={closeCreateDialog}
+      />
+
       <ExportStatus
         status={exportStatus}
         progress={exportProgress}
@@ -264,6 +396,17 @@ export function DocsApp() {
           busy={busy}
           onSelect={selectFile}
           onOpenFolder={() => void openFolder()}
+          onCreateFolder={(parentPath) => openCreateDialog("folder", parentPath)}
+          onCreateFile={(parentPath) => openCreateDialog("file", parentPath)}
+          onDeleteItem={(relativePath) => void deleteItem(relativePath)}
+          onOpenInExplorer={(relativePath) => void openInExplorer(relativePath)}
+          onOpenRootInExplorer={async () => {
+            if (!rootPath) return;
+            const result = await desktop.openRootInExplorer();
+            if (!result.ok) {
+              setExportMessage(result.message ?? "Could not open the folder.");
+            }
+          }}
         />
 
         {mobileOpen && (

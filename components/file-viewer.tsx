@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { desktop } from "@/lib/desktop-api";
 import type { DocFile } from "@/types/docs";
 import { CodeViewer } from "./code-viewer";
-import { FILE_TYPE_META } from "./file-type";
+import { FILE_TYPE_META, fileColorStyle } from "@/types/file-type";
 import { MarkdownViewer } from "./markdown-viewer";
 
 function decodeBase64(base64: string) {
@@ -30,30 +30,32 @@ function FileTypeIcon({
   type,
   size,
   className,
+  style,
 }: {
   type: DocFile["type"];
   size: number;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   if (type === "markdown" || type === "code") {
-    return <FileCode2 size={size} className={className} />;
+    return <FileCode2 size={size} className={className} style={style} />;
   }
   if (type === "pdf") {
-    return <FileType2 size={size} className={className} />;
+    return <FileType2 size={size} className={className} style={style} />;
   }
   if (type === "image") {
-    return <FileImage size={size} className={className} />;
+    return <FileImage size={size} className={className} style={style} />;
   }
   if (type === "powerpoint") {
-    return <Presentation size={size} className={className} />;
+    return <Presentation size={size} className={className} style={style} />;
   }
   if (type === "excel") {
-    return <FileSpreadsheet size={size} className={className} />;
+    return <FileSpreadsheet size={size} className={className} style={style} />;
   }
   if (type === "access") {
-    return <Database size={size} className={className} />;
+    return <Database size={size} className={className} style={style} />;
   }
-  return <FileText size={size} className={className} />;
+  return <FileText size={size} className={className} style={style} />;
 }
 
 function sizeLabel(size: number) {
@@ -174,9 +176,10 @@ export function FileViewer({
     <section className="flex h-full min-h-0 flex-col">
       <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border bg-bg px-3 md:px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <FileTypeIcon type={file.type} size={16} className={"shrink-0 " + meta.iconClass} />
+          <FileTypeIcon type={file.type} size={16} className="shrink-0" style={fileColorStyle(file.name)} />
           <span
-            className={"min-w-0 truncate text-sm font-medium " + meta.colorClass}
+            className="min-w-0 truncate text-sm font-medium"
+            style={fileColorStyle(file.name)}
             title={file.path}
           >
             {file.path}
@@ -218,7 +221,7 @@ export function FileViewer({
       </header>
 
       {actionMessage && (
-        <div className="shrink-0 border-b border-border bg-bg-alt px-4 py-2 text-xs text-file-pdf">
+        <div className="shrink-0 border-b border-border bg-bg-alt px-4 py-2 text-xs text-error">
           {actionMessage}
         </div>
       )}
@@ -227,8 +230,8 @@ export function FileViewer({
         {externalOpen ? (
           <div className="flex min-h-full items-center justify-center p-8 text-center">
             <div className="max-w-md">
-              <FileTypeIcon type={file.type} size={46} className={"mx-auto mb-4 " + meta.iconClass} />
-              <p className={"font-semibold " + meta.colorClass}>
+              <FileTypeIcon type={file.type} size={46} className="mx-auto mb-4" style={fileColorStyle(file.name)} />
+              <p className="font-semibold" style={fileColorStyle(file.name)}>
                 {meta.label} file
               </p>
               <p className="mt-2 text-sm text-muted">

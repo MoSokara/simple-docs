@@ -1,22 +1,30 @@
-import type { FileType } from "@/types/docs";
+export type FileType =
+  | "markdown"
+  | "text"
+  | "code"
+  | "pdf"
+  | "image"
+  | "word"
+  | "powerpoint"
+  | "excel"
+  | "access"
+  | "other";
 
 type FileTypeMeta = {
   label: string;
-  colorClass: string;
-  iconClass: string;
 };
 
 export const FILE_TYPE_META: Record<FileType, FileTypeMeta> = {
-  markdown: { label: "Markdown", colorClass: "text-file-markdown", iconClass: "text-file-markdown" },
-  text: { label: "Text", colorClass: "text-file-text", iconClass: "text-file-text" },
-  code: { label: "Code", colorClass: "text-file-code", iconClass: "text-file-code" },
-  pdf: { label: "PDF", colorClass: "text-file-pdf", iconClass: "text-file-pdf" },
-  image: { label: "Image", colorClass: "text-file-image", iconClass: "text-file-image" },
-  word: { label: "Word", colorClass: "text-file-word", iconClass: "text-file-word" },
-  powerpoint: { label: "PowerPoint", colorClass: "text-file-powerpoint", iconClass: "text-file-powerpoint" },
-  excel: { label: "Excel", colorClass: "text-file-excel", iconClass: "text-file-excel" },
-  access: { label: "Access", colorClass: "text-file-access", iconClass: "text-file-access" },
-  other: { label: "File", colorClass: "text-file-other", iconClass: "text-file-other" },
+  markdown: { label: "Markdown" },
+  text: { label: "Text" },
+  code: { label: "Code" },
+  pdf: { label: "PDF" },
+  image: { label: "Image" },
+  word: { label: "Word" },
+  powerpoint: { label: "PowerPoint" },
+  excel: { label: "Excel" },
+  access: { label: "Access" },
+  other: { label: "File" },
 };
 
 const CODE_LANGUAGES: Record<string, string> = {
@@ -100,6 +108,48 @@ const CODE_LANGUAGES: Record<string, string> = {
   ".tf": "terraform",
   ".tfvars": "terraform",
 };
+
+const FILE_COLOR_KEYS = new Set([
+  "md", "txt", "js", "jsx", "ts", "tsx", "mjs", "cjs", "json", "jsonc",
+  "html", "htm", "css", "scss", "sass", "less", "xml", "vue", "svelte", "astro",
+  "c", "h", "cc", "cpp", "cxx", "hpp", "hh", "cs", "java", "kt", "kts",
+  "go", "rs", "py", "rb", "php", "sql", "sh", "bash", "zsh", "ps1", "bat", "cmd",
+  "yaml", "yml", "toml", "ini", "conf", "env", "graphql", "gql", "prisma", "proto",
+  "dart", "swift", "m", "mm", "r", "lua", "pl", "pm", "ex", "exs", "erl", "hrl",
+  "fs", "fsx", "vb", "asm", "s", "zig", "nim", "clj", "cljs", "groovy", "gradle",
+  "cmake", "mk", "make", "tf", "tfvars",
+  "pdf", "png", "jpg", "jpeg", "webp", "gif", "svg",
+  "doc", "docx", "docm", "dot", "dotx", "dotm",
+  "ppt", "pptx", "pptm", "pps", "ppsx", "pot", "potx",
+  "xls", "xlsx", "xlsm", "xlsb", "xlt", "xltx", "xltm",
+  "mdb", "accdb", "accde", "mde",
+]);
+
+const SPECIAL_FILE_COLORS: Record<string, string> = {
+  dockerfile: "dockerfile",
+  makefile: "makefile",
+  ".gitignore": "gitignore",
+  ".dockerignore": "dockerignore",
+};
+
+export function fileColorKeyFromName(fileName: string) {
+  const lower = fileName.toLowerCase();
+  const special = SPECIAL_FILE_COLORS[lower];
+
+  if (special) return special;
+  if (lower === ".env") return "env";
+
+  const dot = lower.lastIndexOf(".");
+  const key = dot === -1 ? "" : lower.slice(dot + 1);
+
+  return FILE_COLOR_KEYS.has(key) ? key : "other";
+}
+
+export function fileColorStyle(fileName: string) {
+  return {
+    color: `var(--token-ext-${fileColorKeyFromName(fileName)}, var(--token-file-other))`,
+  };
+}
 
 export function codeLanguageFromName(fileName: string) {
   const lower = fileName.toLowerCase();

@@ -13,16 +13,125 @@
   --token-brand: #16a34a;
   --token-brand-strong: #15803d;
   --token-brand-soft: #dcfce7;
-  --token-file-markdown: #4ade80;
-  --token-file-text: #94a3b8;
-  --token-file-code: #60a5fa;
-  --token-file-pdf: #f87171;
-  --token-file-image: #c084fc;
-  --token-file-word: #60a5fa;
-  --token-file-powerpoint: #f97316;
-  --token-file-excel: #22c55e;
-  --token-file-access: #a855f7;
-  --token-file-other: #fb923c;
+  --token-file-other: #ad6b6b; /* unsupported / error */
+  --token-ext-md: #718fa3; /* .md */
+  --token-ext-txt: #84909d; /* .txt */
+  --token-ext-js: #c9ab4b; /* .js */
+  --token-ext-jsx: #55a6b6; /* .jsx */
+  --token-ext-ts: #5682b6; /* .ts */
+  --token-ext-tsx: #4e78ad; /* .tsx */
+  --token-ext-mjs: #b89b43; /* .mjs */
+  --token-ext-cjs: #a8934c; /* .cjs */
+  --token-ext-json: #b6a34e; /* .json */
+  --token-ext-jsonc: #a99a4f; /* .jsonc */
+  --token-ext-html: #c87459; /* .html */
+  --token-ext-htm: #b9775f; /* .htm */
+  --token-ext-css: #5c8fbc; /* .css */
+  --token-ext-scss: #a8759a; /* .scss */
+  --token-ext-sass: #9d7193; /* .sass */
+  --token-ext-less: #6795a7; /* .less */
+  --token-ext-xml: #7d91a6; /* .xml */
+  --token-ext-vue: #5a9b85; /* .vue */
+  --token-ext-svelte: #c27e5a; /* .svelte */
+  --token-ext-astro: #a37d62; /* .astro */
+  --token-ext-c: #628ba5; /* .c */
+  --token-ext-h: #6f91a5; /* .h */
+  --token-ext-cc: #6d7fa1; /* .cc */
+  --token-ext-cpp: #6578a1; /* .cpp */
+  --token-ext-cxx: #667aa0; /* .cxx */
+  --token-ext-hpp: #7786a0; /* .hpp */
+  --token-ext-hh: #7b899f; /* .hh */
+  --token-ext-cs: #6d9a78; /* .cs */
+  --token-ext-java: #b8756d; /* .java */
+  --token-ext-kt: #9676a5; /* .kt */
+  --token-ext-kts: #9078a3; /* .kts */
+  --token-ext-go: #62a0ae; /* .go */
+  --token-ext-rs: #b3785c; /* .rs */
+  --token-ext-py: #6787a8; /* .py */
+  --token-ext-rb: #a36f8a; /* .rb */
+  --token-ext-php: #8179a8; /* .php */
+  --token-ext-sql: #5e83a4; /* .sql */
+  --token-ext-sh: #6f9a76; /* .sh */
+  --token-ext-bash: #728f71; /* .bash */
+  --token-ext-zsh: #788c7a; /* .zsh */
+  --token-ext-ps1: #6d7fa8; /* .ps1 */
+  --token-ext-bat: #8b7f6a; /* .bat */
+  --token-ext-cmd: #8c816c; /* .cmd */
+  --token-ext-yaml: #a46f76; /* .yaml */
+  --token-ext-yml: #a8757b; /* .yml */
+  --token-ext-toml: #8f7f98; /* .toml */
+  --token-ext-ini: #8d8591; /* .ini */
+  --token-ext-conf: #8a8490; /* .conf */
+  --token-ext-env: #9a936c; /* .env */
+  --token-ext-graphql: #6f86a9; /* .graphql */
+  --token-ext-gql: #7287a5; /* .gql */
+  --token-ext-prisma: #6c8fa0; /* .prisma */
+  --token-ext-proto: #7b86a5; /* .proto */
+  --token-ext-dart: #648cac; /* .dart */
+  --token-ext-swift: #a57e67; /* .swift */
+  --token-ext-m: #8e7da0; /* .m */
+  --token-ext-mm: #8b7ba0; /* .mm */
+  --token-ext-r: #78919e; /* .r */
+  --token-ext-lua: #777eae; /* .lua */
+  --token-ext-pl: #8e7489; /* .pl */
+  --token-ext-pm: #8f758a; /* .pm */
+  --token-ext-ex: #8e729b; /* .ex */
+  --token-ext-exs: #8b7499; /* .exs */
+  --token-ext-erl: #9a846d; /* .erl */
+  --token-ext-hrl: #9b866f; /* .hrl */
+  --token-ext-fs: #6c91a0; /* .fs */
+  --token-ext-fsx: #708e9c; /* .fsx */
+  --token-ext-vb: #7b987b; /* .vb */
+  --token-ext-asm: #8b8570; /* .asm */
+  --token-ext-s: #8f826e; /* .s */
+  --token-ext-zig: #bf875f; /* .zig */
+  --token-ext-nim: #6f9a86; /* .nim */
+  --token-ext-clj: #8979a5; /* .clj */
+  --token-ext-cljs: #8a78a5; /* .cljs */
+  --token-ext-groovy: #887f73; /* .groovy */
+  --token-ext-gradle: #7e8a76; /* .gradle */
+  --token-ext-cmake: #7e8895; /* .cmake */
+  --token-ext-mk: #8c8576; /* .mk */
+  --token-ext-make: #8f8778; /* .make */
+  --token-ext-tf: #6b8c96; /* .tf */
+  --token-ext-tfvars: #718b94; /* .tfvars */
+  --token-ext-dockerfile: #778b94; /* Dockerfile */
+  --token-ext-makefile: #8f8778; /* Makefile */
+  --token-ext-gitignore: #8a8790; /* .gitignore */
+  --token-ext-dockerignore: #858a8f; /* .dockerignore */
+  --token-ext-pdf: #ad6f70; /* .pdf */
+  --token-ext-png: #897fa1; /* .png */
+  --token-ext-jpg: #8b8196; /* .jpg */
+  --token-ext-jpeg: #8c8297; /* .jpeg */
+  --token-ext-webp: #6f9690; /* .webp */
+  --token-ext-gif: #988360; /* .gif */
+  --token-ext-svg: #7d8fa4; /* .svg */
+  --token-ext-doc: #607fa1; /* .doc */
+  --token-ext-docx: #587fa5; /* .docx */
+  --token-ext-docm: #5e83a5; /* .docm */
+  --token-ext-dot: #657f9b; /* .dot */
+  --token-ext-dotx: #6886a1; /* .dotx */
+  --token-ext-dotm: #6d8aa1; /* .dotm */
+  --token-ext-ppt: #b77d63; /* .ppt */
+  --token-ext-pptx: #b66f5f; /* .pptx */
+  --token-ext-pptm: #af735f; /* .pptm */
+  --token-ext-pps: #b47b64; /* .pps */
+  --token-ext-ppsx: #ae735f; /* .ppsx */
+  --token-ext-pot: #a97d65; /* .pot */
+  --token-ext-potx: #ad8068; /* .potx */
+  --token-ext-xls: #70916f; /* .xls */
+  --token-ext-xlsx: #648f75; /* .xlsx */
+  --token-ext-xlsm: #6b9478; /* .xlsm */
+  --token-ext-xlsb: #6f9078; /* .xlsb */
+  --token-ext-xlt: #79907a; /* .xlt */
+  --token-ext-xltx: #7b957f; /* .xltx */
+  --token-ext-xltm: #7b927c; /* .xltm */
+  --token-ext-mdb: #977b9b; /* .mdb */
+  --token-ext-accdb: #92779c; /* .accdb */
+  --token-ext-accde: #8c7895; /* .accde */
+  --token-ext-mde: #8f7998; /* .mde */
+  --token-error: #ad6b6b;
+  --token-file-other: #ad6b6b; /* unsupported / error */
   --token-scrollbar: rgba(100, 116, 139, .38);
   --token-code-bg: #f8fafc;
   --token-code-foreground: #0f172a;
@@ -41,16 +150,6 @@
   --token-brand: #4ade80;
   --token-brand-strong: #86efac;
   --token-brand-soft: rgba(74, 222, 128, .12);
-  --token-file-markdown: #4ade80;
-  --token-file-text: #a1a1aa;
-  --token-file-code: #60a5fa;
-  --token-file-pdf: #f87171;
-  --token-file-image: #c084fc;
-  --token-file-word: #60a5fa;
-  --token-file-powerpoint: #fb9232;
-  --token-file-excel: #4ade80;
-  --token-file-access: #c084fc;
-  --token-file-other: #fb923c;
   --token-scrollbar: rgba(148, 163, 184, .26);
   --token-code-bg: #0d131a;
   --token-code-foreground: #dbe7f5;
@@ -69,16 +168,7 @@
   --color-brand: var(--token-brand);
   --color-brand-strong: var(--token-brand-strong);
   --color-brand-soft: var(--token-brand-soft);
-  --color-file-markdown: var(--token-file-markdown);
-  --color-file-text: var(--token-file-text);
-  --color-file-code: var(--token-file-code);
-  --color-file-pdf: var(--token-file-pdf);
-  --color-file-image: var(--token-file-image);
-  --color-file-word: var(--token-file-word);
-  --color-file-powerpoint: var(--token-file-powerpoint);
-  --color-file-excel: var(--token-file-excel);
-  --color-file-access: var(--token-file-access);
-  --color-file-other: var(--token-file-other);
+  --color-error: var(--token-error);
   --color-scrollbar: var(--token-scrollbar);
   --color-code-bg: var(--token-code-bg);
   --color-code-foreground: var(--token-code-foreground);
@@ -226,25 +316,21 @@ button:not(:disabled) { cursor: pointer; }
 .plain-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .code-viewer { white-space: pre; overflow-wrap: normal; padding-right: 1rem; }
 
-.text-file-markdown { color: var(--token-file-markdown); }
-.text-file-text { color: var(--token-file-text); }
-.text-file-code { color: var(--token-file-code); }
-.text-file-pdf { color: var(--token-file-pdf); }
-.text-file-image { color: var(--token-file-image); }
-.text-file-word { color: var(--token-file-word); }
-.text-file-powerpoint { color: var(--token-file-powerpoint); }
-.text-file-excel { color: var(--token-file-excel); }
-.text-file-access { color: var(--token-file-access); }
-.text-file-other { color: var(--token-file-other); }
 
 .markdown h1[id], .markdown h2[id], .markdown h3[id],
 .markdown h4[id], .markdown h5[id], .markdown h6[id] {
   scroll-margin-top: 1rem;
 }
 
-button:focus-visible, input:focus-visible, [role="separator"]:focus-visible {
+button:focus-visible, [role="separator"]:focus-visible {
   outline: 2px solid var(--token-brand);
   outline-offset: 2px;
+}
+
+input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--token-brand);
 }
 
 

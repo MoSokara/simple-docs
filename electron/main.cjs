@@ -150,6 +150,20 @@ async function existingPath(relativePath) {
   return full;
 }
 
+async function ensureWithinRoot(fullPath) {
+  const resolvedRoot = await fsp.realpath(rootPath);
+  const resolvedTarget = await fsp.realpath(fullPath);
+  const relative = path.relative(resolvedRoot, resolvedTarget);
+
+  if (
+    !relative ||
+    relative.startsWith(".." + path.sep) ||
+    path.isAbsolute(relative)
+  ) {
+    throw new Error("The target is outside the opened root folder.");
+  }
+}
+
 function typeOf(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   if (SUPPORTED.has(ext)) return SUPPORTED.get(ext);
@@ -242,6 +256,148 @@ async function chooseFolder() {
   startWatcher();
 
   return { rootPath, tree: await scanFolder() };
+}
+
+async function existingDirectory(relativePath = "") {
+  const full = await existingPath(relativePath);
+  const stat = await fsp.stat(full);
+
+  if (!stat.isDirectory()) throw new Error("The selected location is not a folder.");
+  return full;
+}
+
+function validateNewItemName(value, kind) {
+  if (typeof value !== "string") throw new Error(`Invalid ${kind} name.`);
+
+  const name = value.trim();
+
+  if (!name || name === "." || name === "..") {
+    throw new Error(`Enter a valid ${kind} name.`);
+  }
+
+  if (/[<>:"/\\|?*\u0000-\u001F]/.test(name) || /[ .]$/.test(name)) {
+    throw new Error(`The ${kind} name contains invalid characters.`);
+  }
+
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i.test(name)) {
+    throw new Error(`The ${kind} name is reserved by Windows.`);
+  }
+
+  return name;
+}
+
+async function createFolder(relativeParent, name) {
+  const parent = await existingDirectory(relativeParent || "");
+  const safeName = validateNewItemName(name, "folder");
+  const full = path.join(parent, safeName);
+
+  try {
+    await fsp.mkdir(full);
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      return { ok: false, message: "A folder with this name already exists." };
+    }
+    throw error;
+  }
+
+  scheduleChange();
+  return {
+    ok: true,
+    path: path.relative(rootPath, full).split(path.sep).join("/"),
+  };
+}
+
+async function createFile(relativeParent, name) {
+  const parent = await existingDirectory(relativeParent || "");
+  const safeName = validateNewItemName(name, "file");
+  const full = path.join(parent, safeName);
+
+  try {
+    await fsp.writeFile(full, "", { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      return { ok: false, message: "A file with this name already exists." };
+    }
+    throw error;
+  }
+
+  scheduleChange();
+  return {
+    ok: true,
+    path: path.relative(rootPath, full).split(path.sep).join("/"),
+  };
+}
+
+async function openRootInExplorer() {
+  if (!rootPath) throw new Error("No folder is open.");
+
+  try {
+    const error = await shell.openPath(rootPath);
+    return error ? { ok: false, message: error } : { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Could not open the folder.",
+    };
+  }
+}
+
+async function deleteItem(relativePath) {
+  if (!rootPath) throw new Error("No folder is open.");
+
+  const full = await existingPath(relativePath);
+  const cleanRelative = path.relative(rootPath, full);
+
+  if (
+    !cleanRelative ||
+    cleanRelative === "." ||
+    path.isAbsolute(cleanRelative)
+  ) {
+    throw new Error("The opened root folder itself cannot be deleted.");
+  }
+
+  await ensureWithinRoot(full);
+
+  const stat = await fsp.lstat(full);
+  const confirmation = await dialog.showMessageBox(mainWindow, {
+    type: "warning",
+    title: "Delete item",
+    message: `Delete "${path.basename(full)}"?`,
+    detail: stat.isDirectory()
+      ? "The folder and all of its contents will be permanently deleted."
+      : "This file will be permanently deleted.",
+    buttons: ["Cancel", "Delete"],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  });
+
+  if (confirmation.response !== 1) {
+    return { ok: true, canceled: true };
+  }
+
+  await ensureWithinRoot(full);
+
+  await fsp.rm(full, {
+    recursive: stat.isDirectory(),
+    force: false,
+  });
+
+  const deletedPath = cleanRelative.split(path.sep).join("/");
+  if (
+    selectedPath === deletedPath ||
+    (selectedPath && selectedPath.startsWith(deletedPath + "/"))
+  ) {
+    selectedPath = null;
+    await saveState();
+  }
+
+  scheduleChange();
+
+  return {
+    ok: true,
+    path: deletedPath,
+  };
 }
 
 async function readFile(relativePath) {
@@ -397,8 +553,14 @@ async function openInEditor(relativePath) {
 
 async function revealRelative(relativePath) {
   const full = await existingPath(relativePath);
+  const stat = await fsp.stat(full);
 
   try {
+    if (stat.isDirectory()) {
+      const error = await shell.openPath(full);
+      return error ? { ok: false, message: error } : { ok: true };
+    }
+
     shell.showItemInFolder(full);
     return { ok: true };
   } catch (error) {
@@ -583,6 +745,10 @@ function registerIpc() {
   });
 
   ipcMain.handle("folder:open", chooseFolder);
+  ipcMain.handle("folder:create", (_event, relativeParent, name) => createFolder(relativeParent, name));
+  ipcMain.handle("file:create", (_event, relativeParent, name) => createFile(relativeParent, name));
+  ipcMain.handle("item:delete", (_event, relativePath) => deleteItem(relativePath));
+  ipcMain.handle("root:openInExplorer", openRootInExplorer);
   ipcMain.handle("folder:scan", () => rootPath ? scanFolder() : null);
   ipcMain.handle("file:read", (_event, relativePath) => readFile(relativePath));
   ipcMain.handle("file:search", (_event, query) => searchFiles(query));
@@ -607,6 +773,8 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  mainWindow.maximize();
 
   if (process.platform === "win32" || process.platform === "linux") {
     mainWindow.removeMenu();
