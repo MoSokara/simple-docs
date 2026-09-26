@@ -314,6 +314,75 @@ async function createFile(relativeParent, name) {
   };
 }
 
+async function openRootInExplorer() {
+  if (!rootPath) throw new Error("No folder is open.");
+
+  try {
+    const error = await shell.openPath(rootPath);
+    return error ? { ok: false, message: error } : { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Could not open the folder.",
+    };
+  }
+}
+
+async function deleteRootItem(relativePath) {
+  if (!rootPath) throw new Error("No folder is open.");
+
+  const full = await existingPath(relativePath);
+  const cleanRelative = path.relative(rootPath, full);
+
+  if (
+    !cleanRelative ||
+    cleanRelative === "." ||
+    path.isAbsolute(cleanRelative) ||
+    cleanRelative.includes(path.sep)
+  ) {
+    throw new Error("Only items directly inside the opened root folder can be deleted here.");
+  }
+
+  const stat = await fsp.lstat(full);
+  const confirmation = await dialog.showMessageBox(mainWindow, {
+    type: "warning",
+    title: "Delete item",
+    message: `Delete "${path.basename(full)}"?`,
+    detail: stat.isDirectory()
+      ? "The folder and all of its contents will be permanently deleted."
+      : "This file will be permanently deleted.",
+    buttons: ["Cancel", "Delete"],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  });
+
+  if (confirmation.response !== 1) {
+    return { ok: true, canceled: true };
+  }
+
+  await fsp.rm(full, {
+    recursive: stat.isDirectory(),
+    force: false,
+  });
+
+  const deletedPath = cleanRelative.split(path.sep).join("/");
+  if (
+    selectedPath === deletedPath ||
+    (selectedPath && selectedPath.startsWith(deletedPath + "/"))
+  ) {
+    selectedPath = null;
+    await saveState();
+  }
+
+  scheduleChange();
+
+  return {
+    ok: true,
+    path: deletedPath,
+  };
+}
+
 async function readFile(relativePath) {
   const full = await existingPath(relativePath);
   const stat = await fsp.stat(full);
@@ -655,6 +724,8 @@ function registerIpc() {
   ipcMain.handle("folder:open", chooseFolder);
   ipcMain.handle("folder:create", (_event, relativeParent, name) => createFolder(relativeParent, name));
   ipcMain.handle("file:create", (_event, relativeParent, name) => createFile(relativeParent, name));
+  ipcMain.handle("root-item:delete", (_event, relativePath) => deleteRootItem(relativePath));
+  ipcMain.handle("root:openInExplorer", openRootInExplorer);
   ipcMain.handle("folder:scan", () => rootPath ? scanFolder() : null);
   ipcMain.handle("file:read", (_event, relativePath) => readFile(relativePath));
   ipcMain.handle("file:search", (_event, query) => searchFiles(query));
