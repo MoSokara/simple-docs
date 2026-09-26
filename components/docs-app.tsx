@@ -6,6 +6,7 @@ import type { DocFile, DocFolder, SearchResult } from "@/types/docs";
 import { DocsHeader } from "./docs-header";
 import { DocsSidebar } from "./docs-sidebar";
 import { ExportStatus } from "./export-status";
+import { NewItemDialog } from "./new-item-dialog";
 import { FileViewer } from "./file-viewer";
 
 function findFile(folder: DocFolder | null, target: string | null): DocFile | null {
@@ -42,6 +43,11 @@ export function DocsApp() {
   const [exportStatus, setExportStatus] = useState<"idle" | "preparing" | "compressing" | "complete" | "error">("idle");
   const [exportPath, setExportPath] = useState<string | null>(null);
   const [exportMessage, setExportMessage] = useState("");
+  const [creationType, setCreationType] = useState<"folder" | "file" | null>(null);
+  const [creationParentPath, setCreationParentPath] = useState("");
+  const [creationName, setCreationName] = useState("");
+  const [creationError, setCreationError] = useState("");
+  const [creationBusy, setCreationBusy] = useState(false);
 
   useEffect(() => {
     if (!mounted || !isDesktopAvailable()) return;
@@ -131,6 +137,22 @@ export function DocsApp() {
     };
   }, [query]);
 
+  function openCreateDialog(type: "folder" | "file", parentPath: string) {
+    setCreationType(type);
+    setCreationParentPath(parentPath);
+    setCreationName(type === "folder" ? "New Folder" : "new-file.md");
+    setCreationError("");
+  }
+
+  function closeCreateDialog() {
+    if (creationBusy) return;
+
+    setCreationType(null);
+    setCreationParentPath("");
+    setCreationName("");
+    setCreationError("");
+  }
+
   async function refreshAfterCreation(createdPath?: string, selectCreatedFile = false) {
     const next = await desktop.scan();
     if (!next) return;
@@ -143,39 +165,42 @@ export function DocsApp() {
     }
   }
 
-  async function createFolder(parentPath: string) {
-    const name = window.prompt("New folder name", "New Folder")?.trim();
-    if (!name) return;
+  async function submitCreateDialog() {
+    const name = creationName.trim();
+    if (!creationType) return;
 
-    try {
-      const result = await desktop.createFolder(parentPath, name);
-
-      if (!result.ok) {
-        window.alert(result.message ?? "Could not create the folder.");
-        return;
-      }
-
-      await refreshAfterCreation();
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not create the folder.");
+    if (!name) {
+      setCreationError("Enter a name.");
+      return;
     }
-  }
 
-  async function createFile(parentPath: string) {
-    const name = window.prompt("New file name", "new-file.md")?.trim();
-    if (!name) return;
+    setCreationBusy(true);
+    setCreationError("");
 
     try {
-      const result = await desktop.createFile(parentPath, name);
+      const result = creationType === "folder"
+        ? await desktop.createFolder(creationParentPath, name)
+        : await desktop.createFile(creationParentPath, name);
 
       if (!result.ok) {
-        window.alert(result.message ?? "Could not create the file.");
+        setCreationError(result.message ?? "Could not create the item.");
         return;
       }
 
-      await refreshAfterCreation(result.path, true);
+      await refreshAfterCreation(
+        result.path,
+        creationType === "file",
+      );
+      setCreationType(null);
+      setCreationParentPath("");
+      setCreationName("");
+      setCreationError("");
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not create the file.");
+      setCreationError(
+        error instanceof Error ? error.message : "Could not create the item.",
+      );
+    } finally {
+      setCreationBusy(false);
     }
   }
 
@@ -282,6 +307,20 @@ export function DocsApp() {
         onToggleMobile={() => setMobileOpen((value) => !value)}
       />
 
+      <NewItemDialog
+        type={creationType}
+        parentPath={creationParentPath}
+        name={creationName}
+        error={creationError}
+        busy={creationBusy}
+        onNameChange={(value) => {
+          setCreationName(value);
+          if (creationError) setCreationError("");
+        }}
+        onSubmit={() => void submitCreateDialog()}
+        onClose={closeCreateDialog}
+      />
+
       <ExportStatus
         status={exportStatus}
         progress={exportProgress}
@@ -312,8 +351,8 @@ export function DocsApp() {
           busy={busy}
           onSelect={selectFile}
           onOpenFolder={() => void openFolder()}
-          onCreateFolder={() => void createFolder("")}
-          onCreateFile={() => void createFile("")}
+          onCreateFolder={() => openCreateDialog("folder", "")}
+          onCreateFile={() => openCreateDialog("file", "")}
         />
 
         {mobileOpen && (
