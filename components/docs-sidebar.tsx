@@ -9,6 +9,9 @@ import { FileTree } from "./file-tree";
 const MIN_WIDTH = 220;
 const MAX_WIDTH = 440;
 const DEFAULT_WIDTH = 288;
+const CONTEXT_MENU_WIDTH = 208;
+const CONTEXT_MENU_HEIGHT = 160;
+const CONTEXT_MENU_GAP = 8;
 
 function folderName(rootPath: string | null) {
   if (!rootPath) return "No folder";
@@ -34,7 +37,7 @@ export function DocsSidebar({
   onOpenFolder,
   onCreateFolder,
   onCreateFile,
-  onDeleteRootItem,
+  onDeleteItem,
   onOpenRootInExplorer,
 }: {
   tree: DocFolder | null;
@@ -46,7 +49,7 @@ export function DocsSidebar({
   onOpenFolder: () => void;
   onCreateFolder: (parentPath: string) => void;
   onCreateFile: (parentPath: string) => void;
-  onDeleteRootItem: (relativePath: string) => void;
+  onDeleteItem: (relativePath: string) => void;
   onOpenRootInExplorer: () => Promise<void> | void;
 }) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -108,10 +111,22 @@ export function DocsSidebar({
     event.preventDefault();
     event.stopPropagation();
 
-    const width = 208;
-    const height = target.kind === "folder" ? 160 : 128;
-    const x = Math.min(event.clientX, Math.max(8, window.innerWidth - width - 8));
-    const y = Math.min(event.clientY, Math.max(8, window.innerHeight - height - 8));
+    const spaceBelow = window.innerHeight - event.clientY;
+    const openAbove = spaceBelow < CONTEXT_MENU_HEIGHT + CONTEXT_MENU_GAP;
+    const preferredY = openAbove
+      ? event.clientY - CONTEXT_MENU_HEIGHT
+      : event.clientY;
+    const x = Math.min(
+      event.clientX,
+      Math.max(CONTEXT_MENU_GAP, window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_GAP),
+    );
+    const y = Math.max(
+      CONTEXT_MENU_GAP,
+      Math.min(
+        preferredY,
+        window.innerHeight - CONTEXT_MENU_HEIGHT - CONTEXT_MENU_GAP,
+      ),
+    );
 
     setContextMenu({ x, y, target });
   }
@@ -218,19 +233,23 @@ export function DocsSidebar({
             y={contextMenu.y}
             target={contextMenu.target}
             onCreateFolder={() => {
-              const parentPath = contextMenu.target.kind === "folder" ? contextMenu.target.path : "";
+              const parentPath = contextMenu.target.kind === "folder"
+                ? contextMenu.target.path
+                : contextMenu.target.parentPath;
               closeContextMenu();
               onCreateFolder(parentPath);
             }}
             onCreateFile={() => {
-              const parentPath = contextMenu.target.kind === "folder" ? contextMenu.target.path : "";
+              const parentPath = contextMenu.target.kind === "folder"
+                ? contextMenu.target.path
+                : contextMenu.target.parentPath;
               closeContextMenu();
               onCreateFile(parentPath);
             }}
             onDelete={() => {
               const targetPath = contextMenu.target.path;
               closeContextMenu();
-              onDeleteRootItem(targetPath);
+              onDeleteItem(targetPath);
             }}
           />
         )}
