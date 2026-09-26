@@ -1,11 +1,13 @@
 "use client";
 
 import { FilePlus2, FolderPlus, Trash2 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export type FileContextTarget = {
   kind: "folder" | "file";
   name: string;
   path: string;
+  parentPath: string;
 };
 
 export function FileContextMenu({
@@ -23,7 +25,9 @@ export function FileContextMenu({
   onCreateFile: () => void;
   onDelete: () => void;
 }) {
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       className="fixed z-[120] min-w-[208px] border border-border bg-bg shadow-xl"
       style={{ left: x, top: y }}
@@ -37,7 +41,7 @@ export function FileContextMenu({
           {target.name}
         </p>
         <p className="truncate text-[11px] text-muted">
-          {target.kind === "folder" ? "Root folder" : "Root file"}
+          {target.kind === "folder" ? "Folder" : "File"}
         </p>
       </div>
 
@@ -73,6 +77,7 @@ export function FileContextMenu({
           Delete {target.kind === "folder" ? "Folder" : "File"}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
