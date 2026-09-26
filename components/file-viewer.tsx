@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { desktop } from "@/lib/desktop-api";
 import type { DocFile } from "@/types/docs";
 import { CodeViewer } from "./code-viewer";
-import { FILE_TYPE_META } from "./file-type";
+import { FILE_TYPE_META } from "@/types/file-type";
 import { MarkdownViewer } from "./markdown-viewer";
 
 function decodeBase64(base64: string) {

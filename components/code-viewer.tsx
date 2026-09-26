@@ -3,7 +3,7 @@
 import DOMPurify from "dompurify";
 import { useEffect, useState } from "react";
 import type { BundledLanguage } from "shiki";
-import { codeLanguageFromName } from "./file-type";
+import { codeLanguageFromName } from "@/types/file-type";
 
 export function CodeViewer({
   code,

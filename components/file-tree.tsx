@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { DocFile, DocFolder } from "@/types/docs";
-import { FILE_TYPE_META } from "./file-type";
+import { FILE_TYPE_META } from "@/types/file-type";
 
 const icons = {
   markdown: FileCode2,

@@ -1,15 +1,3 @@
-export type FileType =
-  | "markdown"
-  | "text"
-  | "code"
-  | "pdf"
-  | "image"
-  | "word"
-  | "powerpoint"
-  | "excel"
-  | "access"
-  | "other";
-
 export type DocFile = {
   name: string;
   path: string;
