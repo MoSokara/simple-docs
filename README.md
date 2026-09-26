@@ -72,22 +72,13 @@ Office documents are recognized by the Explorer and opened with the default desk
 
 ## File type colors
 
-File colors are visual labels only. They are intentionally muted and do not represent errors, warnings, success, or file status.
+File colors are visual labels only. Every supported extension has its own muted identity instead of sharing one generic code/document color.
 
-The main color configuration lives in app/globals.css.
+The configuration lives in app/globals.css, while types/file-type.ts maps each filename to its extension color key.
 
-| Type | CSS token | Light | Dark |
-| --- | --- | --- | --- |
-| .md | --token-file-markdown | #71859a | #91a3b4 |
-| .txt | --token-file-text | #8795a4 | #a1acb7 |
-| Code | --token-file-code | #6f8eaa | #8ea9c0 |
-| .pdf | --token-file-pdf | #96887b | #b0a294 |
-| Image | --token-file-image | #908aa0 | #a9a2b7 |
-| Word | --token-file-word | #728fa0 | #92adbb |
-| PowerPoint | --token-file-powerpoint | #a08c7e | #b9a596 |
-| Excel | --token-file-excel | #78978f | #98b8af |
-| Access | --token-file-access | #978ba0 | #ada1b5 |
-| Other | --token-file-other | #8b949c | #a7afb6 |
+Examples: .js uses a muted JavaScript-style yellow, .ts uses a muted blue, .html uses a muted orange, and .pdf uses a muted red. Unsupported files use the error-like fallback color.
+
+Every supported extension uses a --token-ext-* token. Unsupported files use --token-file-other / --token-error.
 
 ## Customization reference
 
