@@ -43,7 +43,7 @@ Important functions:
 - openCreateDialog
 - refreshAfterCreation
 - submitCreateDialog
-- deleteRootItem
+- deleteItem
 - openFolder
 - selectFile
 - navigateTo
@@ -82,7 +82,7 @@ Actions:
 - New File
 - Delete
 
-A folder target uses its path as the creation parent. A file target uses the root.
+A folder target uses its path as the creation parent. A file target uses its containing folder. The menu also exposes Open in Explorer and Delete.
 
 ## components/file-tree.tsx
 
@@ -92,7 +92,7 @@ Important pieces:
 - `open` folder expansion state
 - `absolutePath()` for Windows-style tooltip text
 - parent-aware creation callbacks
-- root-only context-menu callback
+- recursive context-menu callback
 - extension-specific file colors
 
 Depth rules:
@@ -192,11 +192,12 @@ Safety functions:
 - existingDirectory
 - validateNewItemName
 - createFile with `wx`
-- deleteRootItem with root-child verification + native confirmation
+- ensureWithinRoot for resolved filesystem containment
+- deleteItem with root protection + native confirmation
 
 ## electron/preload.cjs
 
-Security boundary. Uses contextBridge and exposes only approved methods. New maintenance methods are `deleteRootItem` and `openRootInExplorer`.
+Security boundary. Uses contextBridge and exposes only approved methods. Maintenance methods include `deleteItem`, `openRootInExplorer`, and the recursive file/folder Explorer reveal flow.
 
 Never expose unrestricted Node APIs.
 
