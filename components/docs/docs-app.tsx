@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { desktop, isDesktopAvailable } from "@/lib/desktop-api";
 import type { DocFile, DocFolder, SearchResult } from "@/types/docs";
 import { DocsHeader } from "./docs-header";
@@ -23,7 +23,11 @@ function findFile(folder: DocFolder | null, target: string | null): DocFile | nu
 }
 
 export function DocsApp() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [tree, setTree] = useState<DocFolder | null>(null);
   const [rootPath, setRootPath] = useState<string | null>(null);
   const [selected, setSelected] = useState<DocFile | null>(null);
@@ -38,8 +42,6 @@ export function DocsApp() {
   const [exportStatus, setExportStatus] = useState<"idle" | "preparing" | "compressing" | "complete" | "error">("idle");
   const [exportPath, setExportPath] = useState<string | null>(null);
   const [exportMessage, setExportMessage] = useState("");
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted || !isDesktopAvailable()) return;
@@ -100,16 +102,18 @@ export function DocsApp() {
       offFolder();
       offExport();
     };
-  }, [mounted]);
+  }, []);
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (!value.trim()) setResults([]);
+  }
 
   useEffect(() => {
-    if (!mounted || !isDesktopAvailable()) return;
+    if (!isDesktopAvailable()) return;
 
     const q = query.trim();
-    if (!q) {
-      setResults([]);
-      return;
-    }
+    if (!q) return;
 
     let active = true;
     const timer = window.setTimeout(async () => {
@@ -125,7 +129,7 @@ export function DocsApp() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [mounted, query]);
+  }, [query]);
 
   async function openFolder() {
     setBusy(true);
@@ -219,10 +223,9 @@ export function DocsApp() {
         query={query}
         results={results}
         exporting={exporting}
-        busy={busy}
         hasFolder={!!rootPath}
         mobileOpen={mobileOpen}
-        onQueryChange={setQuery}
+        onQueryChange={handleQueryChange}
         onSelectResult={(file) => {
           selectFile(file);
           setQuery("");
@@ -274,6 +277,7 @@ export function DocsApp() {
 
         <main className="min-w-0 flex-1 overflow-hidden bg-bg">
           <FileViewer
+            key={selected ? selected.path + ":" + selected.modifiedAt + ":" + selected.size : "empty"}
             file={selected}
             anchor={selectedAnchor}
             onEdit={editFile}
