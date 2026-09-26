@@ -17,7 +17,10 @@ Download the stable Windows release from the repository Releases page.
 - Browse nested directories in an Explorer-style tree.
 - Create a new folder or file directly from the Explorer.
 - Create items in the root folder or inside any visible folder.
-- Hover the creation buttons to see New Folder and New File.
+- Open a root-item context menu with New Folder, New File, and Delete actions.
+- Delete root-level files/folders with native confirmation.
+- Double-click the root folder header to open it in Windows File Explorer.
+- Use native tooltips on creation buttons to show their target absolute path.
 - Start the app maximized.
 - Resize the Explorer sidebar.
 - Search file names, paths, and text/code contents.
@@ -103,7 +106,7 @@ The main color configuration lives in app/globals.css.
 | App metadata and HTML shell | app/layout.tsx |
 | Release configuration | package.json, .github/workflows/release.yml, RELEASING.md |
 
-For detailed private development notes, copy README.DEV.example.md to a local README.DEV.md. README.DEV.md is ignored by Git.
+Detailed development documentation is committed under `.dev/`. Start with `.dev/README.md`.
 
 ## Markdown pipeline
 
@@ -151,9 +154,19 @@ components/
   docs-header.tsx
   docs-sidebar.tsx
   export-status.tsx
+  file-context-menu.tsx
   file-tree.tsx
   file-viewer.tsx
   markdown-viewer.tsx
+  new-item-dialog.tsx
+
+.dev/
+  README.md
+  architecture.md
+  development.md
+  source-files.md
+  code-changes.md
+  production.md
 
 electron/
   main.cjs
