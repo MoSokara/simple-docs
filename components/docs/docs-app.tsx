@@ -102,7 +102,7 @@ export function DocsApp() {
       offFolder();
       offExport();
     };
-  }, []);
+  }, [mounted]);
 
   function handleQueryChange(value: string) {
     setQuery(value);
@@ -230,7 +230,6 @@ export function DocsApp() {
           selectFile(file);
           setQuery("");
         }}
-        onImport={() => void openFolder()}
         onExport={() => void exportZip()}
         onToggleMobile={() => setMobileOpen((value) => !value)}
       />
