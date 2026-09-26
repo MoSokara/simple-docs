@@ -46,11 +46,11 @@ validation + filesystem write
 scan + watcher refresh
 ```
 
-## Root context menu
+## Context menu
 
-Only direct root children may open the custom context menu. Root folders are handled at `depth === 1`; root files are handled while the root node is at `depth === 0`.
+Every file and folder except the opened root node can open the custom context menu.
 
-A folder context menu creates items inside that folder. A file context menu creates siblings in the root.
+A folder context menu creates items inside that folder. A file context menu creates siblings in that file's containing folder.
 
 ## Delete flow
 
