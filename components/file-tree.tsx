@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { DocFile, DocFolder } from "@/types/docs";
-import { FILE_TYPE_META } from "@/types/file-type";
+import { FILE_TYPE_META, fileColorStyle } from "@/types/file-type";
 
 const icons = {
   markdown: FileCode2,
@@ -131,8 +131,8 @@ export function FileTree({
                 }
                 style={{ paddingLeft: level * 12 + 12 }}
               >
-                <Icon size={15} className={"shrink-0 " + meta.iconClass} />
-                <span className={"min-w-0 truncate " + meta.colorClass}>
+                <Icon size={15} className="shrink-0" style={fileColorStyle(file.name)} />
+                <span className="min-w-0 truncate" style={fileColorStyle(file.name)}>
                   {file.name}
                 </span>
               </button>
