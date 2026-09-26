@@ -535,8 +535,14 @@ async function openInEditor(relativePath) {
 
 async function revealRelative(relativePath) {
   const full = await existingPath(relativePath);
+  const stat = await fsp.stat(full);
 
   try {
+    if (stat.isDirectory()) {
+      const error = await shell.openPath(full);
+      return error ? { ok: false, message: error } : { ok: true };
+    }
+
     shell.showItemInFolder(full);
     return { ok: true };
   } catch (error) {
