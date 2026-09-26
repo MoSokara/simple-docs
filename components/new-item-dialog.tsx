@@ -25,11 +25,62 @@ export function NewItemDialog({
   onClose,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!type) return;
+
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
     inputRef.current?.focus();
     inputRef.current?.select();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Tab") return;
+
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+
+      if (!focusable.length) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+
+      if (restoreFocusRef.current?.isConnected) {
+        restoreFocusRef.current.focus();
+      }
+
+      restoreFocusRef.current = null;
+    };
   }, [type]);
 
   if (!type) return null;
@@ -49,6 +100,7 @@ export function NewItemDialog({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-item-title"
@@ -98,9 +150,14 @@ export function NewItemDialog({
               className="h-10 w-full border border-border bg-bg-soft px-3 text-sm text-text outline-none placeholder:text-placeholder focus:border-brand disabled:opacity-60"
               placeholder={isFolder ? "New Folder" : "notes.md"}
               aria-invalid={!!error}
+              aria-describedby={error ? "new-item-error" : undefined}
               autoComplete="off"
             />
-            {error && <p className="mt-1.5 text-xs text-file-other">{error}</p>}
+            {error && (
+              <p id="new-item-error" className="mt-1.5 text-xs text-file-other">
+                {error}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2">
