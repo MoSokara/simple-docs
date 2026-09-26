@@ -74,11 +74,14 @@ export function FileTree({
         <div
           className="group flex min-w-0 w-full items-center gap-2 px-2 py-1.5 text-sm text-soft hover:bg-hover"
           style={{ paddingLeft: depth * 12 + 8 }}
-          onContextMenu={depth === 1 ? (event) => onContextMenu(event, {
+          onContextMenu={(event) => onContextMenu(event, {
             kind: "folder",
             name: folder.name,
             path: folder.path,
-          }) : undefined}
+            parentPath: depth > 1
+              ? folder.path.split("/").slice(0, -1).join("/")
+              : "",
+          })}
         >
           <button
             onClick={() => setOpen((value) => !value)}
@@ -153,11 +156,12 @@ export function FileTree({
                   (selectedPath === file.path ? "bg-hover" : "hover:bg-hover")
                 }
                 style={{ paddingLeft: level * 12 + 12 }}
-                onContextMenu={depth === 0 ? (event) => onContextMenu(event, {
+                onContextMenu={(event) => onContextMenu(event, {
                   kind: "file",
                   name: file.name,
                   path: file.path,
-                }) : undefined}
+                  parentPath: folder.path,
+                })}
               >
                 <Icon size={15} className="shrink-0" style={fileColorStyle(file.name)} />
                 <span className="min-w-0 truncate" style={fileColorStyle(file.name)}>
