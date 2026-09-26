@@ -265,6 +265,22 @@ export function DocsApp() {
     selectFile(file, anchor);
   }
 
+  async function openInExplorer(relativePath: string) {
+    try {
+      const result = await desktop.revealInExplorer(relativePath);
+
+      if (!result.ok) {
+        window.alert(result.message ?? "Could not open the item in Explorer.");
+      }
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Could not open the item in Explorer.",
+      );
+    }
+  }
+
   async function editFile(file: DocFile) {
     setSelectedAnchor(null);
 
@@ -383,6 +399,7 @@ export function DocsApp() {
           onCreateFolder={(parentPath) => openCreateDialog("folder", parentPath)}
           onCreateFile={(parentPath) => openCreateDialog("file", parentPath)}
           onDeleteItem={(relativePath) => void deleteItem(relativePath)}
+          onOpenInExplorer={(relativePath) => void openInExplorer(relativePath)}
           onOpenRootInExplorer={async () => {
             if (!rootPath) return;
             const result = await desktop.openRootInExplorer();
