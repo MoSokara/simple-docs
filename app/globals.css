@@ -13,16 +13,16 @@
   --token-brand: #16a34a;
   --token-brand-strong: #15803d;
   --token-brand-soft: #dcfce7;
-  --token-file-markdown: #4ade80;
-  --token-file-text: #94a3b8;
-  --token-file-code: #60a5fa;
-  --token-file-pdf: #f87171;
-  --token-file-image: #c084fc;
-  --token-file-word: #60a5fa;
-  --token-file-powerpoint: #f97316;
-  --token-file-excel: #22c55e;
-  --token-file-access: #a855f7;
-  --token-file-other: #fb923c;
+  --token-file-markdown: #71859a; /* .md */
+  --token-file-text: #8795a4; /* .txt */
+  --token-file-code: #6f8eaa; /* code */
+  --token-file-pdf: #96887b; /* .pdf */
+  --token-file-image: #908aa0; /* image */
+  --token-file-word: #728fa0; /* .doc/.docx */
+  --token-file-powerpoint: #a08c7e; /* .ppt/.pptx */
+  --token-file-excel: #78978f; /* .xls/.xlsx */
+  --token-file-access: #978ba0; /* .mdb/.accdb */
+  --token-file-other: #8b949c; /* unsupported */
   --token-scrollbar: rgba(100, 116, 139, .38);
   --token-code-bg: #f8fafc;
   --token-code-foreground: #0f172a;
@@ -41,16 +41,16 @@
   --token-brand: #4ade80;
   --token-brand-strong: #86efac;
   --token-brand-soft: rgba(74, 222, 128, .12);
-  --token-file-markdown: #4ade80;
-  --token-file-text: #a1a1aa;
-  --token-file-code: #60a5fa;
-  --token-file-pdf: #f87171;
-  --token-file-image: #c084fc;
-  --token-file-word: #60a5fa;
-  --token-file-powerpoint: #fb9232;
-  --token-file-excel: #4ade80;
-  --token-file-access: #c084fc;
-  --token-file-other: #fb923c;
+  --token-file-markdown: #91a3b4;
+  --token-file-text: #a1acb7;
+  --token-file-code: #8ea9c0;
+  --token-file-pdf: #b0a294;
+  --token-file-image: #a9a2b7;
+  --token-file-word: #92adbb;
+  --token-file-powerpoint: #b9a596;
+  --token-file-excel: #98b8af;
+  --token-file-access: #ada1b5;
+  --token-file-other: #a7afb6;
   --token-scrollbar: rgba(148, 163, 184, .26);
   --token-code-bg: #0d131a;
   --token-code-foreground: #dbe7f5;

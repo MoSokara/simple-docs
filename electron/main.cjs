@@ -680,6 +680,8 @@ function createWindow() {
     },
   });
 
+  mainWindow.maximize();
+
   if (process.platform === "win32" || process.platform === "linux") {
     mainWindow.removeMenu();
   }
