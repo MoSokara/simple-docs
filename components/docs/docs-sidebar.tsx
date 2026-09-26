@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderOpen, GripVertical } from "lucide-react";
+import { FilePlus2, FolderOpen, FolderPlus, GripVertical } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { DocFile, DocFolder } from "@/types/docs";
 import { FileTree } from "./file-tree";
@@ -31,6 +31,8 @@ export function DocsSidebar({
   busy,
   onSelect,
   onOpenFolder,
+  onCreateFolder,
+  onCreateFile,
 }: {
   tree: DocFolder | null;
   rootPath: string | null;
@@ -39,6 +41,8 @@ export function DocsSidebar({
   busy: boolean;
   onSelect: (file: DocFile) => void;
   onOpenFolder: () => void;
+  onCreateFolder: () => void;
+  onCreateFile: () => void;
 }) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -106,14 +110,48 @@ export function DocsSidebar({
               {parentPath(rootPath) || "Local folder"}
             </div>
           </div>
-          <span className="ml-auto hidden shrink-0 text-[11px] text-placeholder xl:inline">
-            Explorer
-          </span>
+          <div className="ml-auto flex shrink-0 items-center gap-0.5">
+            <div className="group relative">
+              <button
+                type="button"
+                onClick={onCreateFolder}
+                disabled={!rootPath || busy}
+                className="rounded p-1 text-muted hover:bg-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="New Folder"
+              >
+                <FolderPlus size={15} />
+              </button>
+              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                New Folder
+              </span>
+            </div>
+
+            <div className="group relative">
+              <button
+                type="button"
+                onClick={onCreateFile}
+                disabled={!rootPath || busy}
+                className="rounded p-1 text-muted hover:bg-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="New File"
+              >
+                <FilePlus2 size={15} />
+              </button>
+              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                New File
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="docs-scroll min-h-0 flex-1 overflow-auto py-2">
           {tree ? (
-            <FileTree folder={tree} selectedPath={selectedPath} onSelect={onSelect} />
+            <FileTree
+              folder={tree}
+              selectedPath={selectedPath}
+              onSelect={onSelect}
+              onCreateFolder={onCreateFolder}
+              onCreateFile={onCreateFile}
+            />
           ) : (
             <div className="p-5 text-sm text-muted">Open a folder to start.</div>
           )}

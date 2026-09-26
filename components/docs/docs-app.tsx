@@ -131,6 +131,54 @@ export function DocsApp() {
     };
   }, [query]);
 
+  async function refreshAfterCreation(createdPath?: string, selectCreatedFile = false) {
+    const next = await desktop.scan();
+    if (!next) return;
+
+    setTree(next);
+
+    if (selectCreatedFile && createdPath) {
+      const createdFile = findFile(next, createdPath);
+      if (createdFile) selectFile(createdFile);
+    }
+  }
+
+  async function createFolder(parentPath: string) {
+    const name = window.prompt("New folder name", "New Folder")?.trim();
+    if (!name) return;
+
+    try {
+      const result = await desktop.createFolder(parentPath, name);
+
+      if (!result.ok) {
+        window.alert(result.message ?? "Could not create the folder.");
+        return;
+      }
+
+      await refreshAfterCreation();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not create the folder.");
+    }
+  }
+
+  async function createFile(parentPath: string) {
+    const name = window.prompt("New file name", "new-file.md")?.trim();
+    if (!name) return;
+
+    try {
+      const result = await desktop.createFile(parentPath, name);
+
+      if (!result.ok) {
+        window.alert(result.message ?? "Could not create the file.");
+        return;
+      }
+
+      await refreshAfterCreation(result.path, true);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not create the file.");
+    }
+  }
+
   async function openFolder() {
     setBusy(true);
 
@@ -264,6 +312,8 @@ export function DocsApp() {
           busy={busy}
           onSelect={selectFile}
           onOpenFolder={() => void openFolder()}
+          onCreateFolder={() => void createFolder("")}
+          onCreateFile={() => void createFile("")}
         />
 
         {mobileOpen && (

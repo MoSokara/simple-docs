@@ -6,11 +6,13 @@ import {
   Database,
   FileCode2,
   FileImage,
+  FilePlus2,
   FileSpreadsheet,
   FileText,
   FileType2,
   Folder,
   FolderOpen,
+  FolderPlus,
   Presentation,
 } from "lucide-react";
 import { useState } from "react";
@@ -34,11 +36,15 @@ export function FileTree({
   folder,
   selectedPath,
   onSelect,
+  onCreateFolder,
+  onCreateFile,
   depth = 0,
 }: {
   folder: DocFolder;
   selectedPath: string | null;
   onSelect: (file: DocFile) => void;
+  onCreateFolder: (parentPath: string) => void;
+  onCreateFile: (parentPath: string) => void;
   depth?: number;
 }) {
   const [open, setOpen] = useState(false);
@@ -48,17 +54,51 @@ export function FileTree({
   return (
     <div>
       {!isRoot && (
-        <button
-          onClick={() => setOpen((value) => !value)}
-          className="flex min-w-0 w-full items-center gap-1 px-2 py-1.5 text-left text-sm text-soft hover:bg-hover"
+        <div
+          className="group flex min-w-0 w-full items-center gap-2 px-2 py-1.5 text-sm text-soft hover:bg-hover"
           style={{ paddingLeft: depth * 12 + 8 }}
-          aria-expanded={open}
-          title={folder.path}
         >
-          {open ? <ChevronDown size={14} className="shrink-0" /> : <ChevronRight size={14} className="shrink-0" />}
-          {open ? <FolderOpen size={16} className="shrink-0" /> : <Folder size={16} className="shrink-0" />}
-          <span className="min-w-0 truncate">{folder.name}</span>
-        </button>
+          <button
+            onClick={() => setOpen((value) => !value)}
+            className="flex min-w-0 flex-1 items-center gap-1 text-left"
+            aria-expanded={open}
+            title={folder.path}
+          >
+            {open ? <ChevronDown size={14} className="shrink-0" /> : <ChevronRight size={14} className="shrink-0" />}
+            {open ? <FolderOpen size={16} className="shrink-0" /> : <Folder size={16} className="shrink-0" />}
+            <span className="min-w-0 truncate">{folder.name}</span>
+          </button>
+
+          <div className="flex shrink-0 items-center gap-0.5">
+            <div className="group/action relative">
+              <button
+                type="button"
+                onClick={() => onCreateFolder(folder.path)}
+                className="rounded p-1 text-placeholder hover:bg-bg-soft hover:text-text"
+                aria-label={"New Folder in " + folder.name}
+              >
+                <FolderPlus size={14} />
+              </button>
+              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover/action:opacity-100">
+                New Folder
+              </span>
+            </div>
+
+            <div className="group/action relative">
+              <button
+                type="button"
+                onClick={() => onCreateFile(folder.path)}
+                className="rounded p-1 text-placeholder hover:bg-bg-soft hover:text-text"
+                aria-label={"New File in " + folder.name}
+              >
+                <FilePlus2 size={14} />
+              </button>
+              <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap border border-border bg-bg px-2 py-1 text-[11px] text-soft opacity-0 shadow-lg transition-opacity group-hover/action:opacity-100">
+                New File
+              </span>
+            </div>
+          </div>
+        </div>
       )}
 
       {visible && (
@@ -69,6 +109,8 @@ export function FileTree({
               folder={child}
               selectedPath={selectedPath}
               onSelect={onSelect}
+              onCreateFolder={onCreateFolder}
+              onCreateFile={onCreateFile}
               depth={depth + 1}
             />
           ))}

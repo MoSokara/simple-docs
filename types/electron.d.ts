@@ -5,6 +5,8 @@ declare global {
     simpleDocs?: {
       getState(): Promise<{ rootPath: string | null; selectedPath: string | null }>;
       openFolder(): Promise<{ rootPath: string | null; tree: DocFolder | null }>;
+      createFolder(relativeParent: string, name: string): Promise<{ ok: boolean; path?: string; message?: string }>;
+      createFile(relativeParent: string, name: string): Promise<{ ok: boolean; path?: string; message?: string }>;
       scan(): Promise<DocFolder | null>;
       readFile(relativePath: string): Promise<FilePayload>;
       search(query: string): Promise<SearchResult[]>;

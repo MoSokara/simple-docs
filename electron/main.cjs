@@ -244,6 +244,76 @@ async function chooseFolder() {
   return { rootPath, tree: await scanFolder() };
 }
 
+async function existingDirectory(relativePath = "") {
+  const full = await existingPath(relativePath);
+  const stat = await fsp.stat(full);
+
+  if (!stat.isDirectory()) throw new Error("The selected location is not a folder.");
+  return full;
+}
+
+function validateNewItemName(value, kind) {
+  if (typeof value !== "string") throw new Error(`Invalid ${kind} name.`);
+
+  const name = value.trim();
+
+  if (!name || name === "." || name === "..") {
+    throw new Error(`Enter a valid ${kind} name.`);
+  }
+
+  if (/[<>:"/\\|?*\u0000-\u001F]/.test(name) || /[ .]$/.test(name)) {
+    throw new Error(`The ${kind} name contains invalid characters.`);
+  }
+
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i.test(name)) {
+    throw new Error(`The ${kind} name is reserved by Windows.`);
+  }
+
+  return name;
+}
+
+async function createFolder(relativeParent, name) {
+  const parent = await existingDirectory(relativeParent || "");
+  const safeName = validateNewItemName(name, "folder");
+  const full = path.join(parent, safeName);
+
+  try {
+    await fsp.mkdir(full);
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      return { ok: false, message: "A folder with this name already exists." };
+    }
+    throw error;
+  }
+
+  scheduleChange();
+  return {
+    ok: true,
+    path: path.relative(rootPath, full).split(path.sep).join("/"),
+  };
+}
+
+async function createFile(relativeParent, name) {
+  const parent = await existingDirectory(relativeParent || "");
+  const safeName = validateNewItemName(name, "file");
+  const full = path.join(parent, safeName);
+
+  try {
+    await fsp.writeFile(full, "", { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      return { ok: false, message: "A file with this name already exists." };
+    }
+    throw error;
+  }
+
+  scheduleChange();
+  return {
+    ok: true,
+    path: path.relative(rootPath, full).split(path.sep).join("/"),
+  };
+}
+
 async function readFile(relativePath) {
   const full = await existingPath(relativePath);
   const stat = await fsp.stat(full);
@@ -583,6 +653,8 @@ function registerIpc() {
   });
 
   ipcMain.handle("folder:open", chooseFolder);
+  ipcMain.handle("folder:create", (_event, relativeParent, name) => createFolder(relativeParent, name));
+  ipcMain.handle("file:create", (_event, relativeParent, name) => createFile(relativeParent, name));
   ipcMain.handle("folder:scan", () => rootPath ? scanFolder() : null);
   ipcMain.handle("file:read", (_event, relativePath) => readFile(relativePath));
   ipcMain.handle("file:search", (_event, query) => searchFiles(query));

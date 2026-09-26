@@ -14,6 +14,8 @@ function api() {
 export const desktop = {
   getState: () => api().getState(),
   openFolder: () => api().openFolder(),
+  createFolder: (relativeParent: string, name: string) => api().createFolder(relativeParent, name),
+  createFile: (relativeParent: string, name: string) => api().createFile(relativeParent, name),
   scan: () => api().scan(),
   readFile: (path: string): Promise<FilePayload> => api().readFile(path),
   search: (query: string): Promise<SearchResult[]> => api().search(query),
