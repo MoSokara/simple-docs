@@ -71,12 +71,11 @@ export function DocsApp() {
       .catch(() => active && setTree(null));
 
     const offFolder = desktop.onFolderChanged(async () => {
-      const current = selectedPathRef.current;
-
       try {
         const next = await desktop.scan();
         if (!active) return;
 
+        const current = selectedPathRef.current;
         setTree(next);
         const file = findFile(next, current);
         setSelected(file);
