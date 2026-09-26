@@ -1,12 +1,25 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, Menu } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, Menu, net, protocol } = require("electron");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const { spawn, execFileSync } = require("node:child_process");
 const archiver = require("archiver");
+const { autoUpdater } = require("electron-updater");
 
 // Use the application's own toolbar instead of Electron's default menu bar.
 Menu.setApplicationMenu(null);
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "simple-docs",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
 
 const SUPPORTED = new Map([
   [".md", "markdown"], [".txt", "text"], [".pdf", "pdf"],
@@ -56,6 +69,41 @@ let changeTimer = null;
 let lastExportPath = null;
 
 const stateFile = () => path.join(app.getPath("userData"), "state.json");
+const rendererPath = path.join(__dirname, "..", "out");
+
+function registerAppProtocol() {
+  protocol.handle("simple-docs", (request) => {
+    const requestUrl = new URL(request.url);
+    let pathname = decodeURIComponent(requestUrl.pathname);
+
+    if (pathname === "/") {
+      pathname = "/index.html";
+    } else if (pathname.endsWith("/")) {
+      pathname += "index.html";
+    }
+
+    const requestedPath = path.resolve(rendererPath, "." + pathname);
+    const relativePath = path.relative(rendererPath, requestedPath);
+    const isSafe =
+      relativePath &&
+      !relativePath.startsWith("..") &&
+      !path.isAbsolute(relativePath);
+
+    if (!isSafe) {
+      return new Response("Not found", { status: 404 });
+    }
+
+    return net.fetch(pathToFileURL(requestedPath).toString());
+  });
+}
+
+function setupAutoUpdater() {
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  void autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+}
 
 async function loadState() {
   try {
@@ -571,14 +619,16 @@ function createWindow() {
     return { action: "deny" };
   });
 
-  mainWindow.loadURL("http://localhost:3000");
+  mainWindow.loadURL(app.isPackaged ? "simple-docs://app/" : "http://localhost:3000");
 }
 
 app.whenReady().then(async () => {
   await loadState();
   registerIpc();
+  if (app.isPackaged) registerAppProtocol();
   createWindow();
   startWatcher();
+  setupAutoUpdater();
 });
 
 app.on("window-all-closed", () => {

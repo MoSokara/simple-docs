@@ -12,6 +12,7 @@ import {
   Pencil,
   Presentation,
 } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { desktop } from "@/lib/desktop-api";
 import type { DocFile } from "@/types/docs";
@@ -25,14 +26,34 @@ function decodeBase64(base64: string) {
   );
 }
 
-function iconFor(type: DocFile["type"]) {
-  if (type === "markdown" || type === "code") return FileCode2;
-  if (type === "pdf") return FileType2;
-  if (type === "image") return FileImage;
-  if (type === "powerpoint") return Presentation;
-  if (type === "excel") return FileSpreadsheet;
-  if (type === "access") return Database;
-  return FileText;
+function FileTypeIcon({
+  type,
+  size,
+  className,
+}: {
+  type: DocFile["type"];
+  size: number;
+  className?: string;
+}) {
+  if (type === "markdown" || type === "code") {
+    return <FileCode2 size={size} className={className} />;
+  }
+  if (type === "pdf") {
+    return <FileType2 size={size} className={className} />;
+  }
+  if (type === "image") {
+    return <FileImage size={size} className={className} />;
+  }
+  if (type === "powerpoint") {
+    return <Presentation size={size} className={className} />;
+  }
+  if (type === "excel") {
+    return <FileSpreadsheet size={size} className={className} />;
+  }
+  if (type === "access") {
+    return <Database size={size} className={className} />;
+  }
+  return <FileText size={size} className={className} />;
 }
 
 function sizeLabel(size: number) {
@@ -58,23 +79,17 @@ export function FileViewer({
 }) {
   const [payload, setPayload] = useState<{ text?: string; url?: string } | null>(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState("");
 
   useEffect(() => {
     let active = true;
     let objectUrl: string | null = null;
 
-    setPayload(null);
-    setError("");
-    setActionMessage("");
 
     if (!file || needsExternalOpen(file.type)) {
-      setLoading(false);
       return;
     }
-
-    setLoading(true);
 
     desktop.readFile(file.path)
       .then((data) => {
@@ -150,7 +165,7 @@ export function FileViewer({
     );
   }
 
-  const Icon = iconFor(file.type);
+
   const meta = FILE_TYPE_META[file.type];
   const editable = file.type === "markdown" || file.type === "text" || file.type === "code";
   const externalOpen = needsExternalOpen(file.type);
@@ -159,7 +174,7 @@ export function FileViewer({
     <section className="flex h-full min-h-0 flex-col">
       <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border bg-bg px-3 md:px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <Icon size={16} className={"shrink-0 " + meta.iconClass} />
+          <FileTypeIcon type={file.type} size={16} className={"shrink-0 " + meta.iconClass} />
           <span
             className={"min-w-0 truncate text-sm font-medium " + meta.colorClass}
             title={file.path}
@@ -212,7 +227,7 @@ export function FileViewer({
         {externalOpen ? (
           <div className="flex min-h-full items-center justify-center p-8 text-center">
             <div className="max-w-md">
-              <Icon size={46} className={"mx-auto mb-4 " + meta.iconClass} />
+              <FileTypeIcon type={file.type} size={46} className={"mx-auto mb-4 " + meta.iconClass} />
               <p className={"font-semibold " + meta.colorClass}>
                 {meta.label} file
               </p>
@@ -287,9 +302,12 @@ export function FileViewer({
 
             {!loading && !error && file.type === "image" && payload?.url && (
               <div className="flex min-h-full items-center justify-center p-6">
-                <img
+                <Image
                   src={payload.url}
                   alt={file.name}
+                  width={1600}
+                  height={1200}
+                  unoptimized
                   className="max-h-full max-w-full object-contain"
                 />
               </div>
