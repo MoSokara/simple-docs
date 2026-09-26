@@ -337,10 +337,9 @@ async function deleteItem(relativePath) {
   if (
     !cleanRelative ||
     cleanRelative === "." ||
-    path.isAbsolute(cleanRelative) ||
-    cleanRelative.includes(path.sep)
+    path.isAbsolute(cleanRelative)
   ) {
-    throw new Error("Only items directly inside the opened root folder can be deleted here.");
+    throw new Error("The opened root folder itself cannot be deleted.");
   }
 
   const stat = await fsp.lstat(full);
@@ -724,7 +723,7 @@ function registerIpc() {
   ipcMain.handle("folder:open", chooseFolder);
   ipcMain.handle("folder:create", (_event, relativeParent, name) => createFolder(relativeParent, name));
   ipcMain.handle("file:create", (_event, relativeParent, name) => createFile(relativeParent, name));
-  ipcMain.handle("root-item:delete", (_event, relativePath) => deleteItem(relativePath));
+  ipcMain.handle("item:delete", (_event, relativePath) => deleteItem(relativePath));
   ipcMain.handle("root:openInExplorer", openRootInExplorer);
   ipcMain.handle("folder:scan", () => rootPath ? scanFolder() : null);
   ipcMain.handle("file:read", (_event, relativePath) => readFile(relativePath));
