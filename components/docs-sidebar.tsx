@@ -1,6 +1,7 @@
 "use client";
 
 import { FilePlus2, FolderOpen, FolderPlus, GripVertical } from "lucide-react";
+import { FileContextMenu, type FileContextTarget } from "./file-context-menu";
 import { useEffect, useRef, useState } from "react";
 import type { DocFile, DocFolder } from "@/types/docs";
 import { FileTree } from "./file-tree";
@@ -33,6 +34,8 @@ export function DocsSidebar({
   onOpenFolder,
   onCreateFolder,
   onCreateFile,
+  onDeleteRootItem,
+  onOpenRootInExplorer,
 }: {
   tree: DocFolder | null;
   rootPath: string | null;
@@ -41,13 +44,28 @@ export function DocsSidebar({
   busy: boolean;
   onSelect: (file: DocFile) => void;
   onOpenFolder: () => void;
-  onCreateFolder: () => void;
-  onCreateFile: () => void;
+  onCreateFolder: (parentPath: string) => void;
+  onCreateFile: (parentPath: string) => void;
+  onDeleteRootItem: (relativePath: string) => void;
+  onOpenRootInExplorer: () => Promise<void> | void;
 }) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    target: FileContextTarget;
+  } | null>(null);
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   useEffect(() => {
+    function closeContextMenu() {
+      setContextMenu(null);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") closeContextMenu();
+    }
+
     function onMove(event: PointerEvent) {
       if (!resizeRef.current) return;
 
@@ -69,14 +87,38 @@ export function DocsSidebar({
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("click", closeContextMenu);
+    window.addEventListener("resize", closeContextMenu);
+    window.addEventListener("scroll", closeContextMenu, true);
 
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("click", closeContextMenu);
+      window.removeEventListener("resize", closeContextMenu);
+      window.removeEventListener("scroll", closeContextMenu, true);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
   }, []);
+
+  function openContextMenu(event: React.MouseEvent, target: FileContextTarget) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const width = 208;
+    const height = target.kind === "folder" ? 160 : 128;
+    const x = Math.min(event.clientX, Math.max(8, window.innerWidth - width - 8));
+    const y = Math.min(event.clientY, Math.max(8, window.innerHeight - height - 8));
+
+    setContextMenu({ x, y, target });
+  }
+
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
 
   function startResize(event: React.PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
@@ -97,25 +139,29 @@ export function DocsSidebar({
       }
     >
       <div className="flex h-full min-h-0 flex-col">
-        <div
-          className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3"
-          title={rootPath ?? undefined}
-        >
+        <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
           <FolderOpen size={15} className="shrink-0 text-muted" />
-          <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            disabled={!rootPath}
+            onDoubleClick={() => void onOpenRootInExplorer()}
+            title={rootPath ?? undefined}
+            className="min-w-0 flex-1 rounded-sm px-1.5 py-1 text-left transition-colors hover:bg-hover disabled:cursor-default"
+          >
             <div className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-text">
               {folderName(rootPath)}
             </div>
             <div className="truncate text-[11px] leading-4 text-muted">
               {parentPath(rootPath) || "Local folder"}
             </div>
-          </div>
+          </button>
           <div className="ml-auto flex shrink-0 items-center gap-0.5">
             <div className="group relative">
               <button
                 type="button"
-                onClick={onCreateFolder}
+                onClick={() => onCreateFolder("")}
                 disabled={!rootPath || busy}
+                title={rootPath ? "New Folder in " + rootPath : undefined}
                 className="rounded p-1 text-muted hover:bg-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="New Folder"
               >
@@ -129,8 +175,9 @@ export function DocsSidebar({
             <div className="group relative">
               <button
                 type="button"
-                onClick={onCreateFile}
+                onClick={() => onCreateFile("")}
                 disabled={!rootPath || busy}
+                title={rootPath ? "New File in " + rootPath : undefined}
                 className="rounded p-1 text-muted hover:bg-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="New File"
               >
@@ -147,10 +194,13 @@ export function DocsSidebar({
           {tree ? (
             <FileTree
               folder={tree}
+              rootPath={rootPath}
               selectedPath={selectedPath}
               onSelect={onSelect}
               onCreateFolder={onCreateFolder}
               onCreateFile={onCreateFile}
+              onContextMenu={openContextMenu}
+              disabled={busy}
             />
           ) : (
             <div className="p-5 text-sm text-muted">Open a folder to start.</div>
@@ -167,6 +217,29 @@ export function DocsSidebar({
             <span className="truncate">{busy ? "Opening…" : "Open another folder"}</span>
           </button>
         </div>
+
+        {contextMenu && (
+          <FileContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            target={contextMenu.target}
+            onCreateFolder={() => {
+              const parentPath = contextMenu.target.kind === "folder" ? contextMenu.target.path : "";
+              closeContextMenu();
+              onCreateFolder(parentPath);
+            }}
+            onCreateFile={() => {
+              const parentPath = contextMenu.target.kind === "folder" ? contextMenu.target.path : "";
+              closeContextMenu();
+              onCreateFile(parentPath);
+            }}
+            onDelete={() => {
+              const targetPath = contextMenu.target.path;
+              closeContextMenu();
+              onDeleteRootItem(targetPath);
+            }}
+          />
+        )}
 
         <div
           role="separator"
