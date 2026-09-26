@@ -165,6 +165,30 @@ export function DocsApp() {
     }
   }
 
+  async function deleteRootItem(relativePath: string) {
+    try {
+      const result = await desktop.deleteRootItem(relativePath);
+      if (!result.ok || result.canceled) return;
+
+      const deletedPath = relativePath.replaceAll("\\", "/");
+      const currentPath = selectedPathRef.current;
+      const selectionDeleted = !!currentPath && (
+        currentPath === deletedPath ||
+        currentPath.startsWith(deletedPath + "/")
+      );
+
+      const next = await desktop.scan();
+      setTree(next);
+
+      if (selectionDeleted) {
+        setSelected(null);
+        selectedPathRef.current = null;
+        setSelectedAnchor(null);
+        await desktop.setSelectedFile(null);
+      }
+    } catch {}
+  }
+
   async function submitCreateDialog() {
     const name = creationName.trim();
     if (!creationType) return;
@@ -351,8 +375,16 @@ export function DocsApp() {
           busy={busy}
           onSelect={selectFile}
           onOpenFolder={() => void openFolder()}
-          onCreateFolder={() => openCreateDialog("folder", "")}
-          onCreateFile={() => openCreateDialog("file", "")}
+          onCreateFolder={(parentPath) => openCreateDialog("folder", parentPath)}
+          onCreateFile={(parentPath) => openCreateDialog("file", parentPath)}
+          onDeleteRootItem={(relativePath) => void deleteRootItem(relativePath)}
+          onOpenRootInExplorer={async () => {
+            if (!rootPath) return;
+            const result = await desktop.openRootInExplorer();
+            if (!result.ok) {
+              setExportMessage(result.message ?? "Could not open the folder.");
+            }
+          }}
         />
 
         {mobileOpen && (
