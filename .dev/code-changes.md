@@ -20,13 +20,9 @@ The callback signature must remain `(parentPath: string) => void` all the way fr
 
 ## 2. Context menu scope
 
-Do not attach the context-menu callback to every recursive item. It is intentionally root-only.
+Attach the context-menu callback to every file and every folder except the opened root node.
 
-Root folder: `depth === 1`
-
-Root file: file row rendered while `depth === 0`
-
-Nested items: no context menu.
+For a folder target, use `target.path` as the creation parent. For a file target, use `target.parentPath` so New File/New Folder are created beside that file in the same containing folder.
 
 ## 3. Delete safety
 
@@ -35,7 +31,7 @@ The renderer is not the security boundary.
 Electron main must:
 1. resolve the relative path through `relativeSafe()`
 2. calculate the path relative to root
-3. reject nested paths
+3. reject the root itself but allow nested paths
 4. use `lstat()`
 5. ask for native confirmation
 6. call `fs.rm()`
