@@ -185,7 +185,13 @@ export function DocsApp() {
         setSelectedAnchor(null);
         await desktop.setSelectedFile(null);
       }
-    } catch {}
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Could not delete the item.",
+      );
+    }
   }
 
   async function submitCreateDialog() {
