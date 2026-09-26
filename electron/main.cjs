@@ -2,8 +2,10 @@ const { app, BrowserWindow, dialog, ipcMain, shell, Menu, net, protocol } = requ
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const { spawn, execFileSync } = require("node:child_process");
 const archiver = require("archiver");
+const { autoUpdater } = require("electron-updater");
 
 // Use the application's own toolbar instead of Electron's default menu bar.
 Menu.setApplicationMenu(null);
