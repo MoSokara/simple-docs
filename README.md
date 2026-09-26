@@ -17,8 +17,8 @@ Download the stable Windows release from the repository Releases page.
 - Browse nested directories in an Explorer-style tree.
 - Create a new folder or file directly from the Explorer.
 - Create items in the root folder or inside any visible folder.
-- Open a root-item context menu with New Folder, New File, and Delete actions.
-- Delete root-level files/folders with native confirmation.
+- Open a context menu on any file or folder in the Explorer with New Folder, New File, and Delete actions.
+- Delete files/folders with native confirmation.
 - Double-click the root folder header to open it in Windows File Explorer.
 - Use native tooltips on creation buttons to show their target absolute path.
 - Start the app maximized.
