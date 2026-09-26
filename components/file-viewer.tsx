@@ -30,30 +30,32 @@ function FileTypeIcon({
   type,
   size,
   className,
+  style,
 }: {
   type: DocFile["type"];
   size: number;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   if (type === "markdown" || type === "code") {
-    return <FileCode2 size={size} className={className} />;
+    return <FileCode2 size={size} className={className} style={style} />;
   }
   if (type === "pdf") {
-    return <FileType2 size={size} className={className} />;
+    return <FileType2 size={size} className={className} style={style} />;
   }
   if (type === "image") {
-    return <FileImage size={size} className={className} />;
+    return <FileImage size={size} className={className} style={style} />;
   }
   if (type === "powerpoint") {
-    return <Presentation size={size} className={className} />;
+    return <Presentation size={size} className={className} style={style} />;
   }
   if (type === "excel") {
-    return <FileSpreadsheet size={size} className={className} />;
+    return <FileSpreadsheet size={size} className={className} style={style} />;
   }
   if (type === "access") {
-    return <Database size={size} className={className} />;
+    return <Database size={size} className={className} style={style} />;
   }
-  return <FileText size={size} className={className} />;
+  return <FileText size={size} className={className} style={style} />;
 }
 
 function sizeLabel(size: number) {
@@ -174,7 +176,7 @@ export function FileViewer({
     <section className="flex h-full min-h-0 flex-col">
       <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border bg-bg px-3 md:px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <FileTypeIcon type={file.type} size={16} className="shrink-0" />
+          <FileTypeIcon type={file.type} size={16} className="shrink-0" style={fileColorStyle(file.name)} />
           <span
             className="min-w-0 truncate text-sm font-medium"
             style={fileColorStyle(file.name)}
@@ -228,7 +230,7 @@ export function FileViewer({
         {externalOpen ? (
           <div className="flex min-h-full items-center justify-center p-8 text-center">
             <div className="max-w-md">
-              <FileTypeIcon type={file.type} size={46} className="mx-auto mb-4" />
+              <FileTypeIcon type={file.type} size={46} className="mx-auto mb-4" style={fileColorStyle(file.name)} />
               <p className="font-semibold" style={fileColorStyle(file.name)}>
                 {meta.label} file
               </p>
