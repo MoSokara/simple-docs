@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("simpleDocs", {
   openFolder: () => ipcRenderer.invoke("folder:open"),
   createFolder: (relativeParent, name) => ipcRenderer.invoke("folder:create", relativeParent, name),
   createFile: (relativeParent, name) => ipcRenderer.invoke("file:create", relativeParent, name),
+  deleteRootItem: (relativePath) => ipcRenderer.invoke("root-item:delete", relativePath),
+  openRootInExplorer: () => ipcRenderer.invoke("root:openInExplorer"),
   scan: () => ipcRenderer.invoke("folder:scan"),
   readFile: (relativePath) => ipcRenderer.invoke("file:read", relativePath),
   search: (query) => ipcRenderer.invoke("file:search", query),
