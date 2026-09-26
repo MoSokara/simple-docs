@@ -63,10 +63,10 @@ Explorer shell:
 - root creation buttons
 - tree container
 - resize handle
-- root-only context-menu state
+- recursive context-menu state
 - Open another folder
 
-The root header uses native `title={rootPath}` and double-click behavior. Root creation actions use parent path `""`.
+The root header uses native `title={rootPath}` and double-click behavior. Root creation actions use parent path `""`. The recursive tree passes each folder/file parent path into context-menu actions.
 
 ## components/file-context-menu.tsx
 
