@@ -82,6 +82,7 @@
       "owner": "MoSokara",
       "repo": "simple-docs",
       "releaseType": "release"
-    }
+    },
+    "icon": "build/icon.ico"
   }
 }
